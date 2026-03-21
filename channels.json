@@ -1,15 +1,22 @@
 {
   "groups": {
-    "all-dev": ["dev-general", "alerts", "deployments"],
-    "marketing": ["announcements", "social-media"]
+    "marketing": [
+      "jbtdj17omfyf8rffhtjff94e6c",
+      "csh8wrs943yfukdz7kjpswkiuo"
+    ]
+  },
+  "secret_groups": {
+    "all-dev": [
+      "6yzo1pcbzid33m3mqid5crxsfe",
+      "qhx953qdfid9bn9pjtpqdezzoh",
+      "mwquacscj78a3b6x58cnaw5sah"
+    ]
   },
   "whitelist": [
-    "town-square",
-    "general",
-    "dev-general",
-    "alerts",
-    "deployments",
-    "announcements",
-    "social-media"
+    "14d9s71is3fh3duwj9a6u9k4jr",
+    "6yzo1pcbzid33m3mqid5crxsfe",
+    "qhx953qdfid9bn9pjtpqdezzoh",
+    "mwquacscj78a3b6x58cnaw5sah",
+    "jbtdj17omfyf8rffhtjff94e6c"
   ]
 }

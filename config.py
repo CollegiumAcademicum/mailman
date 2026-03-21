@@ -6,7 +6,6 @@ load_dotenv()
 
 MATTERMOST_URL = os.getenv('MATTERMOST_URL')
 BOT_TOKEN = os.getenv('BOT_TOKEN')
-WEBHOOK_URL = os.getenv('WEBHOOK_URL')
 TEAM_NAME = os.getenv('TEAM_NAME')
 SESSION_TIMEOUT_SECONDS = int(os.getenv('SESSION_TIMEOUT_SECONDS', 300))
 CLEANUP_INTERVAL_SECONDS = int(os.getenv('CLEANUP_INTERVAL_SECONDS', 60))
@@ -15,5 +14,11 @@ CLEANUP_INTERVAL_SECONDS = int(os.getenv('CLEANUP_INTERVAL_SECONDS', 60))
 with open('channels.json', 'r') as f:
     channel_data = json.load(f)
 
-CHANNEL_GROUPS = channel_data.get('groups', {})
+# Public groups to be shown to the user
+VISIBLE_CHANNEL_GROUPS = channel_data.get('groups', {})
+SECRET_CHANNEL_GROUPS = channel_data.get('secret_groups', {})
+
+# Merge both for internal use
+CHANNEL_GROUPS = {**VISIBLE_CHANNEL_GROUPS, **SECRET_CHANNEL_GROUPS}
+
 WHITELIST = set(channel_data.get('whitelist', []))
