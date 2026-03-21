@@ -143,7 +143,7 @@ async def message_handler(message):
     if not all([sender_id, dm_channel_id, text, sender_name]) or sender_id == bot_info.get("bot_id"):
         return
 
-    # Handle !id! command
+    # Always prioritize the !id! command
     if text.lower().startswith('!id!'):
         channel_name = text[5:].strip()
         if channel_name:
@@ -152,6 +152,7 @@ async def message_handler(message):
             driver.posts.create_post({'channel_id': dm_channel_id, 'message': "Please provide a channel name after `!id!`."})
         return
 
+    # Now, handle the conversational flow
     if sender_id not in known_users:
         handle_new_user(sender_id, dm_channel_id)
         return

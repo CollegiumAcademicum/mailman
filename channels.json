@@ -3,6 +3,12 @@
     "marketing": [
       "jbtdj17omfyf8rffhtjff94e6c",
       "csh8wrs943yfukdz7kjpswkiuo"
+    ],
+    "engineering": [
+      "14d9s71is3fh3duwj9a6u9k4jr"
+    ],
+    "ag_it": [
+      "h4bhise99fgwzfggu5ksr7qzwe"
     ]
   },
   "secret_groups": {
@@ -17,6 +23,7 @@
     "6yzo1pcbzid33m3mqid5crxsfe",
     "qhx953qdfid9bn9pjtpqdezzoh",
     "mwquacscj78a3b6x58cnaw5sah",
-    "jbtdj17omfyf8rffhtjff94e6c"
+    "jbtdj17omfyf8rffhtjff94e6c",
+    "h4bhise99fgwzfggu5ksr7qzwe"
   ]
 }
