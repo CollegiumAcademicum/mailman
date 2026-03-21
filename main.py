@@ -8,124 +8,7 @@ from config import WHITELIST, VISIBLE_CHANNEL_GROUPS, SESSION_TIMEOUT_SECONDS, C
 from state import sessions, known_users, bot_info
 from mattermost import driver, initialize_driver, resolve_targets
 from database import initialize_database, log_broadcast, close_db_connection
-
-# --- Command and State Handlers ---
-
-def handle_id_lookup(channel_name, dm_channel_id):
-    """Looks up and returns the ID of a given channel name."""
-    try:
-        channel = driver.channels.get_channel_by_name(bot_info["team_id"], channel_name)
-        response = f"The ID for channel `{channel_name}` is: `{channel['id']}`"
-    except Exception:
-        response = f"⚠️ Could not find a channel named `{channel_name}`."
-    
-    driver.posts.create_post({'channel_id': dm_channel_id, 'message': response})
-
-def handle_new_user(sender_id, dm_channel_id):
-    """Sends a welcome message to a first-time user."""
-    known_users.add(sender_id)
-    driver.posts.create_post({
-        'channel_id': dm_channel_id,
-        'message': (
-            "👋 **Welcome to the Broadcast Bot!**\n\n"
-            "To send a broadcast, just send me the message you want to share (you can attach files too!). "
-            "I will then ask you to specify the target channels or groups.\n\n"
-            "Your message will *not* be sent until you confirm.\n\n"
-            "**TYPE YOUR MESSAGE AND/OR ATTACH FILES NOW:**"
-        )
-    })
-
-def handle_new_session(sender_id, dm_channel_id, text, file_ids):
-    """Starts a new broadcast session with the user's message and files."""
-    sessions[sender_id] = {
-        "state": "AWAITING_CHANNELS",
-        "message": text,
-        "file_ids": file_ids,
-        "timestamp": time.time(),
-        "dm_channel_id": dm_channel_id
-    }
-    group_list = ', '.join(VISIBLE_CHANNEL_GROUPS.keys())
-    
-    allowed_channels = []
-    for channel_id in WHITELIST:
-        try:
-            channel_info = driver.channels.get_channel(channel_id)
-            allowed_channels.append(f"- `{channel_info['display_name']}` (`{channel_id}`)")
-        except Exception:
-            allowed_channels.append(f"- `(ID not found)` (`{channel_id}`)")
-    allowed_channels.sort()
-
-    file_notice = "\n_You have attached {} file(s)._".format(len(file_ids)) if file_ids else ""
-    driver.posts.create_post({
-        'channel_id': dm_channel_id,
-        'message': (
-            f"I've captured your message.{file_notice}\n\n"
-            f"Reply with the **channel names** or **groups** you want to send it to, separated by commas.\n\n"
-            f"**Available Groups:** {group_list}\n\n"
-            f"**Available Channels:**\n"
-            f"{'\n'.join(allowed_channels)}"
-        )
-    })
-
-def handle_channel_selection(session, text, dm_channel_id):
-    """Processes the user's channel selection and asks for confirmation."""
-    requested_inputs = text.split(',')
-    valid_ids, valid_names, invalid_names = resolve_targets(requested_inputs)
-
-    if not valid_ids:
-        driver.posts.create_post({'channel_id': dm_channel_id, 'message': "⚠️ No valid channels found. Please try again."})
-        return
-
-    session.update({
-        "target_ids": valid_ids,
-        "valid_names": valid_names,
-        "state": "CONFIRMATION",
-        "timestamp": time.time()
-    })
-
-    file_notice = "\n**Files Attached:** {}".format(len(session.get('file_ids', []))) if session.get('file_ids') else ""
-    warning_text = f"\n⚠️ *Ignored invalid inputs: {', '.join(invalid_names)}*" if invalid_names else ""
-    preview_text = (
-        f"**Preview:**\n{session['message']}\n\n"
-        f"**Targets:** {', '.join(valid_names)}{file_notice}{warning_text}\n\n"
-        "Reply with **yes** to send or **no** to cancel."
-    )
-    driver.posts.create_post({'channel_id': dm_channel_id, 'message': preview_text})
-
-def handle_confirmation(user_id, session, text, sender_name, dm_channel_id):
-    """Handles the final 'yes' or 'no' confirmation and ends the session."""
-    if text.lower() == 'yes':
-        post_data = {
-            'message': f"📢 **Message from @{sender_name}**\n \n \n{session['message']}\n \n \n \n*--- END of Message ---*\n*If YOU want to use the services of me (@{bot_info["bot_username"]}) just DM me*",
-            'file_ids': session.get('file_ids', [])
-        }
-        
-        for channel_id in session['target_ids']:
-            try:
-                driver.posts.create_post({'channel_id': channel_id, **post_data})
-            except Exception as e:
-                print(f"Failed to post to {channel_id}: {e}")
-        
-        log_broadcast(
-            sender_name=sender_name,
-            message_content=session['message'],
-            target_channels=session['valid_names'],
-            file_ids=session.get('file_ids')
-        )
-        
-        driver.posts.create_post({
-            'channel_id': dm_channel_id,
-            'message': "✅ **Broadcast sent successfully.**\n\nThank you for using the Broadcast Bot!\n\n\n**If You want to send another Broadcast, SEND THE MESSAGE AND/OR ATTACH FILES NOW:**\nIf not, just do nothing :voigls:"
-        })
-    
-    elif text.lower() == 'no':
-        driver.posts.create_post({'channel_id': dm_channel_id, 'message': "❌ **Broadcast canceled.**"})
-    
-    else:
-        driver.posts.create_post({'channel_id': dm_channel_id, 'message': "Invalid response. Please reply with **yes** or **no**."})
-        return
-
-    del sessions[user_id]
+import handlers as h
 
 # --- Main WebSocket Event Handler ---
 
@@ -160,23 +43,36 @@ async def message_handler(message):
     if text.lower().startswith('!id!'):
         channel_name = text[5:].strip()
         if channel_name:
-            handle_id_lookup(channel_name, dm_channel_id)
+            h.handle_id_lookup(channel_name, dm_channel_id)
         else:
             driver.posts.create_post({'channel_id': dm_channel_id, 'message': "Please provide a channel name after `!id!`."})
         return
+    elif text.lower().startswith("!channels!"):
+        lines = []
+        teams = driver.teams.get_user_teams('me')
+        # 2. Iterate through teams and fetch the associated channels
+        for team in teams:
+            channels = driver.channels.get_channels_for_user('me', team['id'])
+            for channel in channels:
+                # display_name is the UI name, name is the system URL name
+                lines.append(f"ID: {channel['id']} | Name: {channel['display_name']} ({channel['name']})")
 
-    if sender_id not in known_users:
-        handle_new_user(sender_id, dm_channel_id)
-        return
+                print(f"ID: {channel['id']} | Name: {channel['display_name']} ({channel['name']})")
+        message = "\n".join(lines)
+        driver.posts.create_post({'channel_id': dm_channel_id, 'message': message})
+    else:
+        if sender_id not in known_users:
+            h.handle_new_user(sender_id, dm_channel_id)
+            return
 
-    session = sessions.get(sender_id)
-    
-    if not session:
-        handle_new_session(sender_id, dm_channel_id, text, file_ids)
-    elif session.get("state") == "AWAITING_CHANNELS":
-        handle_channel_selection(session, text, dm_channel_id)
-    elif session.get("state") == "CONFIRMATION":
-        handle_confirmation(sender_id, session, text, sender_name, dm_channel_id)
+        session = sessions.get(sender_id)
+
+        if not session:
+            h.handle_new_session(sender_id, dm_channel_id, text, file_ids)
+        elif session.get("state") == "AWAITING_CHANNELS":
+            h.handle_channel_selection(session, text, dm_channel_id)
+        elif session.get("state") == "CONFIRMATION":
+            h.handle_confirmation(sender_id, session, text, sender_name, dm_channel_id)
 
 # --- Background Tasks ---
 

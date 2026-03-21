@@ -1,8 +1,9 @@
-from mattermostdriver import Driver
 from config import MATTERMOST_URL, BOT_TOKEN, TEAM_NAME, WHITELIST, CHANNEL_GROUPS
 from state import bot_info
 
+
 # Initialize the Mattermost driver
+from mattermostdriver import Driver
 driver = Driver({
     'url': MATTERMOST_URL,
     'token': BOT_TOKEN,
