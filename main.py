@@ -42,11 +42,11 @@ async def message_handler(message):
 
     if text.lower().startswith("!help!"):
         message = ("**Here are my Commands:** \n"
-                   "!id! <channel> : return channel id for <channel> \n"
+                   "!id! <channel> : return channel id for <channel> the name must **NOT** be the display_name\n"
                    "!channels!: list all channels the bot has access to \n"
                    "!_get_groups!: list all available groups and their channels\n"
                    "!_get_private_groups!: same as above but with private groups\n"
-                   "!_add_group!: WORK IN PROGRESS, add custom defined group to global groups"
+                   '!_add_group! <json dict> : add public group(s) scheme: {"name1" : ["id1", "id2", ...], "name2" : ["id1", "id2", ...]}'
                    )
         driver.posts.create_post({"channel_id": dm_channel_id, "message": message})
     elif text.lower().startswith("!id!"):
