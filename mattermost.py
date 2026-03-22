@@ -53,7 +53,7 @@ def resolve_targets(requested_inputs):
 
     # 2. Validate direct inputs against the whitelist
     for target in direct_inputs:
-        channel_.id = None
+        #channel_id = None
         # First, try resolving the input as a channel name
         try:
             channel = driver.channels.get_channel_by_name(bot_info["team_id"], target)
