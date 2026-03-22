@@ -7,8 +7,8 @@ db_connection = threading.local()
 
 def get_db_connection():
     """Opens a new database connection if one is not already open for the current thread."""
-    if not hasattr(db_connection, 'conn') or db_connection.conn is None:
-        db_connection.conn = sqlite3.connect('broadcast_log.db', check_same_thread=False)
+    if not hasattr(db_connection, "conn") or db_connection.conn is None:
+        db_connection.conn = sqlite3.connect("broadcast_log.db", check_same_thread=False)
     return db_connection.conn
 
 def initialize_database():
@@ -18,7 +18,7 @@ def initialize_database():
         cursor = conn.cursor()
         
         # Create table if it doesn't exist
-        cursor.execute('''
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS broadcasts (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -27,13 +27,13 @@ def initialize_database():
                 target_channels TEXT NOT NULL,
                 file_ids TEXT
             )
-        ''')
+        """)
         
         # Add the file_ids column if it doesn't exist (for backward compatibility)
         cursor.execute("PRAGMA table_info(broadcasts)")
         columns = [column[1] for column in cursor.fetchall()]
-        if 'file_ids' not in columns:
-            cursor.execute('ALTER TABLE broadcasts ADD COLUMN file_ids TEXT')
+        if "file_ids" not in columns:
+            cursor.execute("ALTER TABLE broadcasts ADD COLUMN file_ids TEXT")
             
         conn.commit()
         print("Database initialized successfully.")
@@ -59,6 +59,6 @@ def log_broadcast(sender_name, message_content, target_channels, file_ids=None):
 
 def close_db_connection():
     """Closes the database connection for the current thread."""
-    if hasattr(db_connection, 'conn') and db_connection.conn is not None:
+    if hasattr(db_connection, "conn") and db_connection.conn is not None:
         db_connection.conn.close()
         db_connection.conn = None
