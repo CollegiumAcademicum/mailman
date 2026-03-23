@@ -64,9 +64,8 @@ async def message_handler(message):
             channels = driver.channels.get_channels_for_user("me", team["id"])
             for channel in channels:
                 # display_name is the UI name, name is the system URL name
-                lines.append(f"ID: {channel['id']} | Name: {channel['display_name']} ({channel['name']})")
+                lines.append(f"{channel['display_name']} ({channel['name']}) | ID: {channel['id']}")
 
-                print(f"ID: {channel['id']} | Name: {channel['display_name']} ({channel['name']})")
         message = "\n".join(lines)
         driver.posts.create_post({"channel_id": dm_channel_id, "message": message})
     elif text.lower().startswith("!_get_private_groups!"):
