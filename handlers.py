@@ -98,7 +98,7 @@ def handle_confirmation(user_id, session, text, sender_name, dm_channel_id):
     if text.lower() == "yes":
         message = f"📢 **Message from @{sender_name}**\n \n \n{session['message']}\n \n \n \n*--- END of Message ---*\n*If YOU want to use the services of me (@{bot_info['bot_username']}) just DM me*"
         original_file_ids = session.get("file_ids", [])
-        print(original_file_ids)
+        print(f"original_file_ids: {original_file_ids}")
         files = {}
         for original_id in original_file_ids:
             try:
@@ -114,7 +114,7 @@ def handle_confirmation(user_id, session, text, sender_name, dm_channel_id):
                     files[filename] = response.content
             except Exception as e:
                 print(f"Failed to fetch file {original_id}: {e}")
-        print(files.keys())
+        print(f"files.keys(): {files.keys()}")
         for channel_id in session["target_ids"]:
             file_ids = []
             # upload file to channel:
