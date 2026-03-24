@@ -4,7 +4,12 @@ import threading
 import time
 
 import handlers as h
-from config import CLEANUP_INTERVAL_SECONDS, PRIVATE_CHANNEL_GROUPS, SESSION_TIMEOUT_SECONDS, VISIBLE_CHANNEL_GROUPS
+from config import (
+    CLEANUP_INTERVAL_SECONDS,
+    PRIVATE_CHANNEL_GROUPS,
+    SESSION_TIMEOUT_SECONDS,
+    VISIBLE_CHANNEL_GROUPS,
+)
 from database import close_db_connection, initialize_database
 from mattermost import driver, initialize_driver
 from patches import apply_ssl_patch
@@ -12,6 +17,7 @@ from state import bot_info, known_users, sessions
 
 
 # --- Main WebSocket Event Handler ---
+
 
 async def message_handler(message):
     """The main entry point for processing incoming WebSocket messages."""
@@ -35,26 +41,37 @@ async def message_handler(message):
     file_ids = post.get("file_ids", [])
     sender_name = data.get("sender_name", "").strip("@")
 
-    if not all([sender_id, dm_channel_id, sender_name]) or sender_id == bot_info.get("bot_id"):
+    if not all([sender_id, dm_channel_id, sender_name]) or sender_id == bot_info.get(
+        "bot_id"
+    ):
         return
 
     if not text and not file_ids:  # Ignore messages with no content
         return
 
-    if text.lower().startswith("!help") or text.lower().startswith("help") or text.lower().startswith(
+    if (
+        text.lower().startswith("!help")
+        or text.lower().startswith("help")
+        or text.lower().startswith(
             "!help!",
-    ) or text.lower().startswith("help!") or text.lower().startswith(
+        )
+        or text.lower().startswith("help!")
+        or text.lower().startswith(
             "-- help",
-    ) or text.lower().startswith("man"):
-        message = ("### Usage\n"
-                   "**DM me with the message you want delivered, I'll guide you through the process**\n \n "
-                   "**Other Commands:** \n"
-                   "!id <channel> : return channel id for <channel> the name must **NOT** be the display_name\n"
-                   "!channels : list all channels the bot has access to \n"
-                   "!get_groups : list all available groups and their channels\n"
-                   "!get_private_groups : same as above but with private groups\n"
-                   '!add_group <json dict> : add public group(s) scheme: {"name1" : ["id1", "id2", ...], "name2" : ["id1", "id2", ...]}\n'
-                   "!add_private_group <json dict> : add private group(s) scheme: same as for public groups")
+        )
+        or text.lower().startswith("man")
+    ):
+        message = (
+            "### Usage\n"
+            "**DM me with the message you want delivered, I'll guide you through the process**\n \n "
+            "**Other Commands:** \n"
+            "!id <channel> : return channel id for <channel> the name must **NOT** be the display_name\n"
+            "!channels : list all channels the bot has access to \n"
+            "!get_groups : list all available groups and their channels\n"
+            "!get_private_groups : same as above but with private groups\n"
+            '!add_group <json dict> : add public group(s) scheme: {"name1" : ["id1", "id2", ...], "name2" : ["id1", "id2", ...]}\n'
+            "!add_private_group <json dict> : add private group(s) scheme: same as for public groups"
+        )
         driver.posts.create_post({"channel_id": dm_channel_id, "message": message})
     elif text.lower().startswith("!id"):
         channel_name = text.strip().lstrip("!id").strip()
@@ -62,9 +79,10 @@ async def message_handler(message):
             h.handle_id_lookup(channel_name, dm_channel_id)
         else:
             driver.posts.create_post(
-                    {
-                        "channel_id": dm_channel_id, "message": "Please provide a channel name after `!id!`."
-                    },
+                {
+                    "channel_id": dm_channel_id,
+                    "message": "Please provide a channel name after `!id!`.",
+                },
             )
         return
     elif text.lower().startswith("!channels"):
@@ -75,21 +93,27 @@ async def message_handler(message):
             channels = driver.channels.get_channels_for_user("me", team["id"])
             for channel in channels:
                 # display_name is the UI name, name is the system URL name
-                lines.append(f"{channel['display_name']} ({channel['name']}) | ID: {channel['id']}")
+                lines.append(
+                    f"{channel['display_name']} ({channel['name']}) | ID: {channel['id']}"
+                )
 
         message = "\n".join(lines)
         driver.posts.create_post({"channel_id": dm_channel_id, "message": message})
     elif text.lower().startswith("!get_private_groups"):
         lines = []
         for name, list in PRIVATE_CHANNEL_GROUPS.items():
-            lines.append(f"{name}: {[driver.channels.get_channel(i)['name'] for i in list]}\n \n")
-        message = '\n'.join(lines)
+            lines.append(
+                f"{name}: {[driver.channels.get_channel(i)['name'] for i in list]}\n \n"
+            )
+        message = "\n".join(lines)
         driver.posts.create_post({"channel_id": dm_channel_id, "message": message})
     elif text.lower().startswith("!get_groups"):
         lines = []
         for name, list in VISIBLE_CHANNEL_GROUPS.items():
             try:
-                lines.append(f"{name}: {[driver.channels.get_channel(i)['name'] for i in list]}\n \n")
+                lines.append(
+                    f"{name}: {[driver.channels.get_channel(i)['name'] for i in list]}\n \n"
+                )
             except Exception:
                 lines.append(f"{name}: [ID not found]\n \n")
         message = f"{'\n'.join(lines)}"
@@ -115,23 +139,27 @@ async def message_handler(message):
 
 # --- Background Tasks ---
 
+
 async def session_cleanup_task():
     """Periodically cleans up expired user sessions."""
     while True:
         await asyncio.sleep(CLEANUP_INTERVAL_SECONDS)
         current_time = time.time()
-        expired_users = [uid for uid, sess in sessions.items() if
-                         current_time - sess["timestamp"] > SESSION_TIMEOUT_SECONDS]
+        expired_users = [
+            uid
+            for uid, sess in sessions.items()
+            if current_time - sess["timestamp"] > SESSION_TIMEOUT_SECONDS
+        ]
 
         for user_id in expired_users:
             expired_session = sessions.pop(user_id, None)
             if expired_session:
                 try:
                     driver.posts.create_post(
-                            {
-                                "channel_id": expired_session["dm_channel_id"],
-                                "message":    "⏱️ **Session expired.** You took too long to confirm. Send a new message to start over."
-                            },
+                        {
+                            "channel_id": expired_session["dm_channel_id"],
+                            "message": "⏱️ **Session expired.** You took too long to confirm. Send a new message to start over.",
+                        },
                     )
                 except Exception as e:
                     print(f"Failed to send timeout notice for user {user_id}: {e}")

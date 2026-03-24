@@ -21,20 +21,28 @@ def handle_id_lookup(channel_name, dm_channel_id):
 def handle_new_user(sender_id, dm_channel_id):
     """Sends a welcome message to a first-time user."""
     known_users.add(sender_id)
-    driver.posts.create_post({
-        "channel_id": dm_channel_id, "message": ("👋 **Welcome, I'm the Mailman**\n\n"
-                                                 "To send a broadcast, just send me the message you want to share (you can attach files too!). "
-                                                 "I will then ask you to specify the target channels or groups.\n\n"
-                                                 "Your message will *not* be sent until you confirm.\n\n"
-                                                 "**TYPE YOUR MESSAGE AND/OR ATTACH FILES NOW:**")
-    })
+    driver.posts.create_post(
+        {
+            "channel_id": dm_channel_id,
+            "message": (
+                "👋 **Welcome, I'm the Mailman**\n\n"
+                "To send a broadcast, just send me the message you want to share (you can attach files too!). "
+                "I will then ask you to specify the target channels or groups.\n\n"
+                "Your message will *not* be sent until you confirm.\n\n"
+                "**TYPE YOUR MESSAGE AND/OR ATTACH FILES NOW:**"
+            ),
+        }
+    )
 
 
 def handle_new_session(sender_id, dm_channel_id, text, file_ids):
     """Starts a new broadcast session with the user's message and files."""
     sessions[sender_id] = {
-        "state": "AWAITING_CHANNELS", "message": text, "file_ids": file_ids, "timestamp": time.time(),
-        "dm_channel_id": dm_channel_id
+        "state": "AWAITING_CHANNELS",
+        "message": text,
+        "file_ids": file_ids,
+        "timestamp": time.time(),
+        "dm_channel_id": dm_channel_id,
     }
     group_list = ", ".join(VISIBLE_CHANNEL_GROUPS.keys())
 
@@ -42,19 +50,28 @@ def handle_new_session(sender_id, dm_channel_id, text, file_ids):
     for channel_id in WHITELIST:
         try:
             channel_info = driver.channels.get_channel(channel_id)
-            allowed_channels.append(f"- `{channel_info['name']}`    (`{channel_info['display_name']}`- `{channel_id}`)")
+            allowed_channels.append(
+                f"- `{channel_info['name']}`    (`{channel_info['display_name']}`- `{channel_id}`)"
+            )
         except Exception:
             allowed_channels.append(f"- `(ID not found)` (`{channel_id}`)")
     allowed_channels.sort()
 
-    file_notice = "\n_You have attached {} file(s)._".format(len(file_ids)) if file_ids else ""
-    driver.posts.create_post({
-        "channel_id": dm_channel_id, "message": (f"I've captured your message.{file_notice}\n\n"
-                                                 f"Reply with the **channel names** or **groups** you want to send it to, separated by commas.\n\n"
-                                                 f"**Available Groups:** {group_list}\n\n"
-                                                 f"**Available Channels:**\n"
-                                                 f"{'\n'.join(allowed_channels)}")
-    })
+    file_notice = (
+        "\n_You have attached {} file(s)._".format(len(file_ids)) if file_ids else ""
+    )
+    driver.posts.create_post(
+        {
+            "channel_id": dm_channel_id,
+            "message": (
+                f"I've captured your message.{file_notice}\n\n"
+                f"Reply with the **channel names** or **groups** you want to send it to, separated by commas.\n\n"
+                f"**Available Groups:** {group_list}\n\n"
+                f"**Available Channels:**\n"
+                f"{'\n'.join(allowed_channels)}"
+            ),
+        }
+    )
 
 
 def handle_channel_selection(session, text, dm_channel_id):
@@ -64,30 +81,48 @@ def handle_channel_selection(session, text, dm_channel_id):
 
     if not valid_ids:
         driver.posts.create_post(
-            {"channel_id": dm_channel_id, "message": "⚠️ No valid channels found. Please try again."})
+            {
+                "channel_id": dm_channel_id,
+                "message": "⚠️ No valid channels found. Please try again.",
+            }
+        )
         return
 
-    session.update({
-        "target_ids": valid_ids,
-        "valid_names": valid_names,
-        "state": "CONFIRMATION",
-        "timestamp": time.time()
-    })
+    session.update(
+        {
+            "target_ids": valid_ids,
+            "valid_names": valid_names,
+            "state": "CONFIRMATION",
+            "timestamp": time.time(),
+        }
+    )
 
-    file_notice = "\n**Files Attached:** {}".format(len(session.get("file_ids", []))) if session.get("file_ids") else ""
-    warning_text = f"\n⚠️ *Ignored invalid inputs: {', '.join(invalid_names)}*" if invalid_names else ""
-    preview_text = (f"**Preview:**\n{session['message']}\n \n"
-                    f"**Targets:** {', '.join(valid_names)}{file_notice}{warning_text}\n \n"
-                    "Reply with **yes** to send or **no** to cancel.")
+    file_notice = (
+        "\n**Files Attached:** {}".format(len(session.get("file_ids", [])))
+        if session.get("file_ids")
+        else ""
+    )
+    warning_text = (
+        f"\n⚠️ *Ignored invalid inputs: {', '.join(invalid_names)}*"
+        if invalid_names
+        else ""
+    )
+    preview_text = (
+        f"**Preview:**\n{session['message']}\n \n"
+        f"**Targets:** {', '.join(valid_names)}{file_notice}{warning_text}\n \n"
+        "Reply with **yes** to send or **no** to cancel."
+    )
     driver.posts.create_post({"channel_id": dm_channel_id, "message": preview_text})
 
 
 def handle_confirmation(user_id, session, text, sender_name, dm_channel_id):
     """Handles the final 'yes' or 'no' confirmation and ends the session."""
     if text.lower() == "yes":
-        message = (f"📢 **Message from @{sender_name}**\n \n \n{session['message']}"
-                   f"\n \n \n \n*--- END of Message ---*\n"
-                   f"*If YOU want to use the services of me (@{bot_info['bot_username']}) just DM me*")
+        message = (
+            f"📢 **Message from @{sender_name}**\n \n \n{session['message']}"
+            f"\n \n \n \n*--- END of Message ---*\n"
+            f"*If YOU want to use the services of me (@{bot_info['bot_username']}) just DM me*"
+        )
         original_file_ids = session.get("file_ids", [])
         print(f"original_file_ids: {original_file_ids}")
         files = {}
@@ -111,8 +146,9 @@ def handle_confirmation(user_id, session, text, sender_name, dm_channel_id):
             # upload file to channel:
             for id, content in files.items():
                 try:
-                    file_info = driver.files.upload_file(channel_id=channel_id,
-                                                         files={"files": (id, content)})
+                    file_info = driver.files.upload_file(
+                        channel_id=channel_id, files={"files": (id, content)}
+                    )
                     print(f"File uploaded successfully: {file_info}")
                     print(file_ids.append(file_info["file_infos"][0]["id"]))
                 except Exception as e:
@@ -126,23 +162,35 @@ def handle_confirmation(user_id, session, text, sender_name, dm_channel_id):
             except Exception as e:
                 print(f"Failed to post to {channel_id}: {e}")
 
-        log_broadcast(sender_name=sender_name, message_content=session["message"],
-            target_channels=session["valid_names"], file_ids=file_ids)
+        log_broadcast(
+            sender_name=sender_name,
+            message_content=session["message"],
+            target_channels=session["valid_names"],
+            file_ids=file_ids,
+        )
 
-        driver.posts.create_post({
-            "channel_id": dm_channel_id,
-            "message": "✅ **Broadcast sent successfully.**\n\n"
-                       "Thank you for using the Broadcast Bot!\n\n\n"
-                       "**If You want to send another Broadcast, SEND THE MESSAGE AND/OR ATTACH FILES NOW:**\n"
-                       "If not, just do nothing :voigls:"
-        })
+        driver.posts.create_post(
+            {
+                "channel_id": dm_channel_id,
+                "message": "✅ **Broadcast sent successfully.**\n\n"
+                "Thank you for using the Broadcast Bot!\n\n\n"
+                "**If You want to send another Broadcast, SEND THE MESSAGE AND/OR ATTACH FILES NOW:**\n"
+                "If not, just do nothing :voigls:",
+            }
+        )
 
     elif text.lower() == "no":
-        driver.posts.create_post({"channel_id": dm_channel_id, "message": "❌ **Broadcast canceled.**"})
+        driver.posts.create_post(
+            {"channel_id": dm_channel_id, "message": "❌ **Broadcast canceled.**"}
+        )
 
     else:
         driver.posts.create_post(
-            {"channel_id": dm_channel_id, "message": "Invalid response. Please reply with **yes** or **no**."})
+            {
+                "channel_id": dm_channel_id,
+                "message": "Invalid response. Please reply with **yes** or **no**.",
+            }
+        )
         return
 
     del sessions[user_id]
@@ -160,10 +208,12 @@ def handle_add_group(text, dm_channel_id, private=False):
 
     # 1. Check if the user actually provided payload data
     if not incoming_message:
-        driver.posts.create_post({
-            "channel_id": dm_channel_id,
-            "message": "❌ Please provide a JSON string. Example: `!_add_group! {\"NewGroup\": [\"id1\", \"id2\"]}`"
-        })
+        driver.posts.create_post(
+            {
+                "channel_id": dm_channel_id,
+                "message": '❌ Please provide a JSON string. Example: `!_add_group! {"NewGroup": ["id1", "id2"]}`',
+            }
+        )
         return
     try:
         # 2. Attempt to parse the JSON
@@ -178,7 +228,7 @@ def handle_add_group(text, dm_channel_id, private=False):
                 print(f"id {id}")
                 try:
                     driver.channels.get_channel(id)
-                except Exception as e:
+                except Exception:
                     list.remove(id)
                     print(f"popped {id}")
             if len(list) == 0:
@@ -189,7 +239,6 @@ def handle_add_group(text, dm_channel_id, private=False):
         print(f"new_groups_dict after cleaning: {new_groups_dict}")
 
         if len(new_groups_dict) != 0:
-
             # 4. Integrate the new group into your global state
             targeted_groups.update(new_groups_dict)
             print("updated")
@@ -203,23 +252,31 @@ def handle_add_group(text, dm_channel_id, private=False):
                 json.dump(data, f, indent=4)
 
             print("written")
-            driver.posts.create_post({
-                "channel_id": dm_channel_id, "message": "✅ Group added successfully!"
-            })
+            driver.posts.create_post(
+                {"channel_id": dm_channel_id, "message": "✅ Group added successfully!"}
+            )
             print("done")
         else:
-            driver.posts.create_post({
-                "channel_id": dm_channel_id,
-                "message": "❌ Group could not be added. Check your JSON syntax and the channel IDs!"
-            })
+            driver.posts.create_post(
+                {
+                    "channel_id": dm_channel_id,
+                    "message": "❌ Group could not be added. Check your JSON syntax and the channel IDs!",
+                }
+            )
     except json.JSONDecodeError:
-        driver.posts.create_post({
-            "channel_id": dm_channel_id, "message": "❌ Invalid JSON format. Please check your syntax."
-        })
+        driver.posts.create_post(
+            {
+                "channel_id": dm_channel_id,
+                "message": "❌ Invalid JSON format. Please check your syntax.",
+            }
+        )
     except ValueError as e:
-        driver.posts.create_post({
-            "channel_id": dm_channel_id, "message": f"❌ {e}"
-        })
+        driver.posts.create_post({"channel_id": dm_channel_id, "message": f"❌ {e}"})
     except Exception as e:
         # Catch-all for unexpected parsing or assignment issues
-        driver.posts.create_post({"channel_id": dm_channel_id, "message": f"❌ An unexpected error occurred: {e}"})
+        driver.posts.create_post(
+            {
+                "channel_id": dm_channel_id,
+                "message": f"❌ An unexpected error occurred: {e}",
+            }
+        )

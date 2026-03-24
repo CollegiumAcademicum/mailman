@@ -1,5 +1,6 @@
 import ssl
 
+
 def apply_ssl_patch():
     """
     Intercepts the faulty SSL call in the mattermostdriver library and forces

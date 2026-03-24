@@ -5,8 +5,4 @@ sessions = {}
 known_users = set()
 
 # Global variables populated at startup
-bot_info = {
-    "bot_id": None,
-    "team_id": None,
-    "bot_username": None
-}
+bot_info = {"bot_id": None, "team_id": None, "bot_username": None}

@@ -5,18 +5,22 @@ import threading
 # Use a thread-local connection to ensure thread safety
 db_connection = threading.local()
 
+
 def get_db_connection():
     """Opens a new database connection if one is not already open for the current thread."""
     if not hasattr(db_connection, "conn") or db_connection.conn is None:
-        db_connection.conn = sqlite3.connect("broadcast_log.db", check_same_thread=False)
+        db_connection.conn = sqlite3.connect(
+            "broadcast_log.db", check_same_thread=False
+        )
     return db_connection.conn
+
 
 def initialize_database():
     """Creates or updates the 'broadcasts' table to include a 'file_ids' column."""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        
+
         # Create table if it doesn't exist
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS broadcasts (
@@ -28,34 +32,36 @@ def initialize_database():
                 file_ids TEXT
             )
         """)
-        
+
         # Add the file_ids column if it doesn't exist (for backward compatibility)
         cursor.execute("PRAGMA table_info(broadcasts)")
         columns = [column[1] for column in cursor.fetchall()]
         if "file_ids" not in columns:
             cursor.execute("ALTER TABLE broadcasts ADD COLUMN file_ids TEXT")
-            
+
         conn.commit()
         print("Database initialized successfully.")
     except sqlite3.Error as e:
         print(f"Database error during initialization: {e}")
+
 
 def log_broadcast(sender_name, message_content, target_channels, file_ids=None):
     """Logs a successful broadcast to the database."""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        
+
         channels_json = json.dumps(target_channels)
         files_json = json.dumps(file_ids) if file_ids else None
-        
+
         cursor.execute(
             "INSERT INTO broadcasts (sender_name, message_content, target_channels, file_ids) VALUES (?, ?, ?, ?)",
-            (sender_name, message_content, channels_json, files_json)
+            (sender_name, message_content, channels_json, files_json),
         )
         conn.commit()
     except sqlite3.Error as e:
         print(f"Failed to log broadcast to database: {e}")
+
 
 def close_db_connection():
     """Closes the database connection for the current thread."""

@@ -5,29 +5,32 @@ from mattermostdriver import Driver
 # Define driver as a global variable, but do not initialize it yet.
 driver: Driver = None
 
+
 def initialize_driver():
     """Initializes the Mattermost driver, logs the bot in, and fetches essential IDs."""
     global driver
     print("Connecting to Mattermost...")
-    
-    driver = Driver({
-        "url": MATTERMOST_URL,
-        "token": BOT_TOKEN,
-        "scheme": "https",
-        "port": 443
-    })
-    
+
+    driver = Driver(
+        {"url": MATTERMOST_URL, "token": BOT_TOKEN, "scheme": "https", "port": 443}
+    )
+
     driver.login()
     bot_info["bot_id"] = driver.users.get_user("me")["id"]
     bot_info["bot_username"] = driver.users.get_user("me")["username"]
-    
+
     try:
         bot_info["team_id"] = driver.teams.get_team_by_name(TEAM_NAME)["id"]
-        print(f"Bot connected. Bot ID: {bot_info['bot_id']} | Team ID: {bot_info['team_id']}")
+        print(
+            f"Bot connected. Bot ID: {bot_info['bot_id']} | Team ID: {bot_info['team_id']}"
+        )
     except Exception as e:
-        print(f"ERROR: Could not find team '{TEAM_NAME}'. Please check TEAM_NAME in your .env file.")
+        print(
+            f"ERROR: Could not find team '{TEAM_NAME}'. Please check TEAM_NAME in your .env file."
+        )
         print(f"Details: {e}")
         exit()
+
 
 def resolve_targets(requested_inputs):
     """
@@ -35,7 +38,7 @@ def resolve_targets(requested_inputs):
     """
     valid_ids = set()
     invalid_inputs = set()
-    
+
     group_channel_ids = set()
     direct_inputs = set()
 
