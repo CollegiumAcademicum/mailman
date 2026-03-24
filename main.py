@@ -135,17 +135,20 @@ def run_websocket_listener():
     driver.init_websocket(message_handler)
 
 # --- Main Execution ---
-
-if __name__ == "__main__":
+def main():
     apply_ssl_patch()
     initialize_driver()
     initialize_database()
-    
+
     ws_thread = threading.Thread(target=run_websocket_listener, daemon=True)
     ws_thread.start()
-    
+
     try:
         ws_thread.join()
     finally:
         close_db_connection()
         print("Bot shutting down.")
+
+
+if __name__ == "__main__":
+    main()
