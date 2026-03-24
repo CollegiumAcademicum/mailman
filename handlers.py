@@ -160,8 +160,13 @@ def handle_confirmation(user_id, session, text, sender_name, dm_channel_id):
     del sessions[user_id]
 
 
-def handle_add_group(text, dm_channel_id):
-    incoming_message = text[12:].strip()
+def handle_add_group(text, dm_channel_id, private = False):
+    if private:
+        targeted_groups = PRIVATE_CHANNEL_GROUPS
+        incoming_message = text.strip().lstrip("!_add_private_group").strip()
+    else:
+        targeted_groups = VISIBLE_CHANNEL_GROUPS
+        incoming_message = text.strip().lstrip("!_add_group").strip()
     # 1. Check if the user actually provided payload data
     if not incoming_message:
         driver.posts.create_post({
@@ -197,13 +202,14 @@ def handle_add_group(text, dm_channel_id):
 
             # 4. Integrate the new group into your global state (assuming VISIBLE_CHANNEL_GROUPS)
             VISIBLE_CHANNEL_GROUPS.update(new_groups_dict)
+            # 4. Integrate the new group into your global state
             print("updated")
 
             with open("channels.json", "r") as f:
                 data = json.load(f)
             print("loaded")
 
-            data["groups"] = VISIBLE_CHANNEL_GROUPS
+            data["groups"] = targeted_groups
             with open("channels.json", "w") as f:
                 json.dump(data, f, indent=4)
 
