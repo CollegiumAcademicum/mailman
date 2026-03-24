@@ -3,7 +3,7 @@ from state import bot_info
 from mattermostdriver import Driver
 
 # Define driver as a global variable, but do not initialize it yet.
-driver = None
+driver: Driver = None
 
 def initialize_driver():
     """Initializes the Mattermost driver, logs the bot in, and fetches essential IDs."""
