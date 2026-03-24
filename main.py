@@ -75,7 +75,7 @@ async def message_handler(message):
         lines = []
         for name, list in PRIVATE_CHANNEL_GROUPS.items():
             lines.append(f"{name}: {[driver.channels.get_channel(i)['name'] for i in list]}\n \n")
-        message = f"{'\n'.join(lines)}"
+        message = '\n'.join(lines)
         driver.posts.create_post({"channel_id": dm_channel_id, "message": message})
     elif text.lower().startswith("!get_groups"):
         lines = []
