@@ -13,7 +13,8 @@ class TestBot(unittest.TestCase):
         sessions.clear()
         known_users.clear()
 
-    def create_message(self, text, user_id="user_id_1", channel_id="dm_channel_id_1", sender_name="@testuser", file_ids=None):
+    @staticmethod
+    def create_message(text, user_id="user_id_1", channel_id="dm_channel_id_1", sender_name="@testuser", file_ids=None):
         if file_ids is None:
             file_ids = []
         return json.dumps({
