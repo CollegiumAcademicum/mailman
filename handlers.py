@@ -1,7 +1,7 @@
-from mattermost import driver, initialize_driver, resolve_targets
+from mattermost import driver, resolve_targets
 from state import sessions, known_users, bot_info
-from config import WHITELIST, VISIBLE_CHANNEL_GROUPS, SESSION_TIMEOUT_SECONDS, CLEANUP_INTERVAL_SECONDS
-from database import initialize_database, log_broadcast, close_db_connection
+from config import PRIVATE_CHANNEL_GROUPS, WHITELIST, VISIBLE_CHANNEL_GROUPS
+from database import log_broadcast
 
 
 import time
@@ -200,9 +200,8 @@ def handle_add_group(text, dm_channel_id, private = False):
         if len(new_groups_dict) != 0:
 
 
-            # 4. Integrate the new group into your global state (assuming VISIBLE_CHANNEL_GROUPS)
-            VISIBLE_CHANNEL_GROUPS.update(new_groups_dict)
             # 4. Integrate the new group into your global state
+            targeted_groups.update(new_groups_dict)
             print("updated")
 
             with open("channels.json", "r") as f:
