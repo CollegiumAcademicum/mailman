@@ -164,9 +164,12 @@ def handle_add_group(text, dm_channel_id, private = False):
     if private:
         targeted_groups = PRIVATE_CHANNEL_GROUPS
         incoming_message = text.strip().lstrip("!_add_private_group").strip()
+        group = "private_groups"
     else:
         targeted_groups = VISIBLE_CHANNEL_GROUPS
         incoming_message = text.strip().lstrip("!_add_group").strip()
+        group = "groups"
+
     # 1. Check if the user actually provided payload data
     if not incoming_message:
         driver.posts.create_post({
@@ -208,7 +211,7 @@ def handle_add_group(text, dm_channel_id, private = False):
                 data = json.load(f)
             print("loaded")
 
-            data["groups"] = targeted_groups
+            data[group] = targeted_groups
             with open("channels.json", "w") as f:
                 json.dump(data, f, indent=4)
 
