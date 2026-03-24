@@ -40,23 +40,26 @@ async def message_handler(message):
     if not text and not file_ids: # Ignore messages with no content
         return
 
-    if text.lower().startswith("!help!"):
-        message = ("**Here are my Commands:** \n"
-                   "!id! <channel> : return channel id for <channel> the name must **NOT** be the display_name\n"
-                   "!channels!: list all channels the bot has access to \n"
-                   "!_get_groups!: list all available groups and their channels\n"
-                   "!_get_private_groups!: same as above but with private groups\n"
-                   '!_add_group! <json dict> : add public group(s) scheme: {"name1" : ["id1", "id2", ...], "name2" : ["id1", "id2", ...]}'
+    if text.lower().startswith("!help") or text.lower().startswith("help") or text.lower().startswith("!help!") or text.lower().startswith("help!") or text.lower().startswith("-- help") or text.lower().startswith("man"):
+        message = ("### Usage\n"
+                   "**DM me with the message you want delivered, I'll guide you through the process**\n \n "
+                   "**Other Commands:** \n"
+                   "!id <channel> : return channel id for <channel> the name must **NOT** be the display_name\n"
+                   "!channels : list all channels the bot has access to \n"
+                   "!get_groups : list all available groups and their channels\n"
+                   "!get_private_groups : same as above but with private groups\n"
+                   '!add_group <json dict> : add public group(s) scheme: {"name1" : ["id1", "id2", ...], "name2" : ["id1", "id2", ...]}\n'
+                   "!add_private_group <json dict> : add private group(s) scheme: same as for public groups"
                    )
         driver.posts.create_post({"channel_id": dm_channel_id, "message": message})
-    elif text.lower().startswith("!id!"):
-        channel_name = text[5:].strip()
+    elif text.lower().startswith("!id"):
+        channel_name = text.strip().lstrip("!id").strip()
         if channel_name:
             h.handle_id_lookup(channel_name, dm_channel_id)
         else:
             driver.posts.create_post({"channel_id": dm_channel_id, "message": "Please provide a channel name after `!id!`."})
         return
-    elif text.lower().startswith("!channels!"):
+    elif text.lower().startswith("!channels"):
         lines = []
         teams = driver.teams.get_user_teams("me")
         # 2. Iterate through teams and fetch the associated channels
@@ -68,13 +71,13 @@ async def message_handler(message):
 
         message = "\n".join(lines)
         driver.posts.create_post({"channel_id": dm_channel_id, "message": message})
-    elif text.lower().startswith("!_get_private_groups!"):
+    elif text.lower().startswith("!get_private_groups"):
         lines = []
         for name, list in PRIVATE_CHANNEL_GROUPS.items():
             lines.append(f"{name}: {[driver.channels.get_channel(i)['name'] for i in list]}\n \n")
         message = f"{'\n'.join(lines)}"
         driver.posts.create_post({"channel_id": dm_channel_id, "message": message})
-    elif text.lower().startswith("!_get_groups!"):
+    elif text.lower().startswith("!get_groups"):
         lines = []
         for name, list in VISIBLE_CHANNEL_GROUPS.items():
             try:
@@ -83,7 +86,7 @@ async def message_handler(message):
                 lines.append(f"{name}: [ID not found]\n \n")
         message = f"{'\n'.join(lines)}"
         driver.posts.create_post({"channel_id": dm_channel_id, "message": message})
-    elif text.lower().startswith("!_add_group!"):
+    elif text.lower().startswith("!add_group"):
         h.handle_add_group(text, dm_channel_id)
     else:
         if sender_id not in known_users:
