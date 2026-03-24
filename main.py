@@ -88,6 +88,8 @@ async def message_handler(message):
         driver.posts.create_post({"channel_id": dm_channel_id, "message": message})
     elif text.lower().startswith("!add_group"):
         h.handle_add_group(text, dm_channel_id)
+    elif text.lower().startswith("!add_private_group"):
+        h.handle_add_group(text, dm_channel_id, private=True)
     else:
         if sender_id not in known_users:
             h.handle_new_user(sender_id, dm_channel_id)
