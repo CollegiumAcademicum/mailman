@@ -111,5 +111,50 @@ class TestBot(unittest.TestCase):
         self.assertIn("Broadcast sent successfully", mock_driver.posts.create_post.call_args[0][0]['message'])
         mock_log.assert_called_once()
 
+    @patch('handlers.driver', new_callable=MagicMock)
+    def test_conversation_cancellation(self, mock_driver):
+        known_users.add("user_id_1")
+        sessions['user_id_1'] = {"state": "CONFIRMATION"}
+        message = self.create_message("no")
+        asyncio.run(message_handler(message))
+        self.assertNotIn("user_id_1", sessions)
+        mock_driver.posts.create_post.assert_called_with({"channel_id": "dm_channel_id_1", "message": "❌ **Broadcast canceled.**"})
+
+    @patch('handlers.driver', new_callable=MagicMock)
+    def test_file_attachment_flow(self, mock_driver):
+        known_users.add("user_id_1")
+        sessions['user_id_1'] = {
+            "state": "CONFIRMATION", "message": "Test with file", "file_ids": ["file_id_1"],
+            "target_ids": ["channel_id_1"], "valid_names": ["channel-1"], "dm_channel_id": "dm_channel_id_1"
+        }
+        mock_driver.files.get_file.return_value.content = b'file_content'
+        mock_driver.files.get_file_metadata.return_value = {'name': 'test_file.txt'}
+        mock_driver.files.upload_file.return_value = {'file_infos': [{'id': 'new_file_id'}]}
+        
+        with patch('handlers.bot_info', {'bot_username': 'testbot'}):
+            message = self.create_message("yes")
+            asyncio.run(message_handler(message))
+
+        mock_driver.files.get_file.assert_called_with("file_id_1")
+        mock_driver.files.upload_file.assert_called_with(channel_id='channel_id_1', files={'files': ('test_file.txt', b'file_content')})
+        self.assertIn('new_file_id', mock_driver.posts.create_post.call_args_list[0].args[0]['file_ids'])
+
+    @patch('main.driver', new_callable=MagicMock)
+    def test_invalid_id_command(self, mock_driver):
+        message = self.create_message("!id")
+        asyncio.run(message_handler(message))
+        mock_driver.posts.create_post.assert_called_with({"channel_id": "dm_channel_id_1", "message": "Please provide a channel name after `!id!`."})
+
+    @patch('handlers.driver', new_callable=MagicMock)
+    def test_invalid_channel_selection(self, mock_driver):
+        known_users.add("user_id_1")
+        sessions['user_id_1'] = {"state": "AWAITING_CHANNELS"}
+        with patch('handlers.resolve_targets', return_value=([], [], ['invalid1', 'invalid2'])):
+            message = self.create_message("invalid1, invalid2")
+            asyncio.run(message_handler(message))
+        
+        mock_driver.posts.create_post.assert_called_with({"channel_id": "dm_channel_id_1", "message": "⚠️ No valid channels found. Please try again."})
+        self.assertEqual(sessions["user_id_1"]["state"], "AWAITING_CHANNELS")
+
 if __name__ == '__main__':
     unittest.main()
