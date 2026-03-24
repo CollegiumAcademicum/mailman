@@ -1,10 +1,11 @@
-import unittest
-import json
 import asyncio
-from unittest.mock import patch, MagicMock, mock_open
+import json
+import unittest
+from unittest.mock import MagicMock, mock_open, patch
 
 from main import message_handler
-from state import sessions, known_users
+from state import known_users, sessions
+
 
 class TestBot(unittest.TestCase):
 
@@ -18,16 +19,10 @@ class TestBot(unittest.TestCase):
         if file_ids is None:
             file_ids = []
         return json.dumps({
-            "event": "posted",
-            "data": {
-                "channel_type": "D",
-                "post": json.dumps({
-                    "user_id": user_id,
-                    "channel_id": channel_id,
-                    "message": text,
-                    "file_ids": file_ids
-                }),
-                "sender_name": sender_name
+            "event": "posted", "data": {
+                "channel_type": "D", "post": json.dumps({
+                    "user_id": user_id, "channel_id": channel_id, "message": text, "file_ids": file_ids
+                }), "sender_name": sender_name
             }
         })
 
@@ -44,17 +39,18 @@ class TestBot(unittest.TestCase):
         message = self.create_message("!id test-channel")
         asyncio.run(message_handler(message))
         mock_driver.posts.create_post.assert_called_with({
-            "channel_id": "dm_channel_id_1",
-            "message": "The ID for channel `test-channel` is: `channel_id_found`"
+            "channel_id": "dm_channel_id_1", "message": "The ID for channel `test-channel` is: `channel_id_found`"
         })
 
     @patch('main.driver', new_callable=MagicMock)
     def test_channels_command(self, mock_driver):
         mock_driver.teams.get_user_teams.return_value = [{'id': 'team_id_1'}]
-        mock_driver.channels.get_channels_for_user.return_value = [{'display_name': 'Channel 1', 'name': 'channel-1', 'id': 'channel_id_1'}]
+        mock_driver.channels.get_channels_for_user.return_value = [
+            {'display_name': 'Channel 1', 'name': 'channel-1', 'id': 'channel_id_1'}]
         message = self.create_message("!channels")
         asyncio.run(message_handler(message))
-        mock_driver.posts.create_post.assert_called_with({"channel_id": "dm_channel_id_1", "message": "Channel 1 (channel-1) | ID: channel_id_1"})
+        mock_driver.posts.create_post.assert_called_with(
+            {"channel_id": "dm_channel_id_1", "message": "Channel 1 (channel-1) | ID: channel_id_1"})
 
     @patch('builtins.open', new_callable=mock_open, read_data='{"groups": {}, "private_groups": {}}')
     @patch('handlers.driver', new_callable=MagicMock)
@@ -63,7 +59,8 @@ class TestBot(unittest.TestCase):
         mock_driver.channels.get_channel.return_value = {}
         message = self.create_message('!add_group {"new_group": ["id1"]}')
         asyncio.run(message_handler(message))
-        mock_driver.posts.create_post.assert_called_with({"channel_id": "dm_channel_id_1", "message": "✅ Group added successfully!"})
+        mock_driver.posts.create_post.assert_called_with(
+            {"channel_id": "dm_channel_id_1", "message": "✅ Group added successfully!"})
 
     @patch('handlers.driver', new_callable=MagicMock)
     def test_new_user_flow(self, mock_driver):
@@ -80,10 +77,10 @@ class TestBot(unittest.TestCase):
         # -- Step 1: Start a new session ---
         known_users.add("user_id_1")
         mock_driver.channels.get_channel.return_value = {'name': 'channel-1', 'display_name': 'Channel 1'}
-        
+
         message1 = self.create_message("My broadcast message")
         asyncio.run(message_handler(message1))
-        
+
         self.assertIn("user_id_1", sessions)
         self.assertEqual(sessions["user_id_1"]["state"], "AWAITING_CHANNELS")
         self.assertIn("I've captured your message", mock_driver.posts.create_post.call_args[0][0]['message'])
@@ -99,16 +96,15 @@ class TestBot(unittest.TestCase):
 
         # -- Step 3: User confirms -> broadcast is sent and session is cleared ---
         mock_driver.reset_mock()
-        with patch('handlers.bot_info', {'bot_username': 'testbot'}), \
-             patch('handlers.log_broadcast') as mock_log:
-            
+        with patch('handlers.bot_info', {'bot_username': 'testbot'}), patch('handlers.log_broadcast') as mock_log:
             message3 = self.create_message("yes")
             asyncio.run(message_handler(message3))
 
         self.assertNotIn("user_id_1", sessions)
-        
+
         broadcast_message = "📢 **Message from @testuser**\n \n \nMy broadcast message\n \n \n \n*--- END of Message ---*\n*If YOU want to use the services of me (@testbot) just DM me*"
-        mock_driver.posts.create_post.assert_any_call({"channel_id": "target_id_1", "message": broadcast_message, "file_ids": []})
+        mock_driver.posts.create_post.assert_any_call(
+            {"channel_id": "target_id_1", "message": broadcast_message, "file_ids": []})
         self.assertIn("Broadcast sent successfully", mock_driver.posts.create_post.call_args[0][0]['message'])
         mock_log.assert_called_once()
 
@@ -119,7 +115,8 @@ class TestBot(unittest.TestCase):
         message = self.create_message("no")
         asyncio.run(message_handler(message))
         self.assertNotIn("user_id_1", sessions)
-        mock_driver.posts.create_post.assert_called_with({"channel_id": "dm_channel_id_1", "message": "❌ **Broadcast canceled.**"})
+        mock_driver.posts.create_post.assert_called_with(
+            {"channel_id": "dm_channel_id_1", "message": "❌ **Broadcast canceled.**"})
 
     @patch('handlers.driver', new_callable=MagicMock)
     def test_file_attachment_flow(self, mock_driver):
@@ -131,20 +128,22 @@ class TestBot(unittest.TestCase):
         mock_driver.files.get_file.return_value.content = b'file_content'
         mock_driver.files.get_file_metadata.return_value = {'name': 'test_file.txt'}
         mock_driver.files.upload_file.return_value = {'file_infos': [{'id': 'new_file_id'}]}
-        
+
         with patch('handlers.bot_info', {'bot_username': 'testbot'}):
             message = self.create_message("yes")
             asyncio.run(message_handler(message))
 
         mock_driver.files.get_file.assert_called_with("file_id_1")
-        mock_driver.files.upload_file.assert_called_with(channel_id='channel_id_1', files={'files': ('test_file.txt', b'file_content')})
+        mock_driver.files.upload_file.assert_called_with(channel_id='channel_id_1',
+                                                         files={'files': ('test_file.txt', b'file_content')})
         self.assertIn('new_file_id', mock_driver.posts.create_post.call_args_list[0].args[0]['file_ids'])
 
     @patch('main.driver', new_callable=MagicMock)
     def test_invalid_id_command(self, mock_driver):
         message = self.create_message("!id")
         asyncio.run(message_handler(message))
-        mock_driver.posts.create_post.assert_called_with({"channel_id": "dm_channel_id_1", "message": "Please provide a channel name after `!id!`."})
+        mock_driver.posts.create_post.assert_called_with(
+            {"channel_id": "dm_channel_id_1", "message": "Please provide a channel name after `!id!`."})
 
     @patch('handlers.driver', new_callable=MagicMock)
     def test_invalid_channel_selection(self, mock_driver):
@@ -153,9 +152,11 @@ class TestBot(unittest.TestCase):
         with patch('handlers.resolve_targets', return_value=([], [], ['invalid1', 'invalid2'])):
             message = self.create_message("invalid1, invalid2")
             asyncio.run(message_handler(message))
-        
-        mock_driver.posts.create_post.assert_called_with({"channel_id": "dm_channel_id_1", "message": "⚠️ No valid channels found. Please try again."})
+
+        mock_driver.posts.create_post.assert_called_with(
+            {"channel_id": "dm_channel_id_1", "message": "⚠️ No valid channels found. Please try again."})
         self.assertEqual(sessions["user_id_1"]["state"], "AWAITING_CHANNELS")
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,14 +1,15 @@
-import json
-import time
 import asyncio
+import json
 import threading
+import time
 
-from patches import apply_ssl_patch
-from config import WHITELIST, VISIBLE_CHANNEL_GROUPS,PRIVATE_CHANNEL_GROUPS, SESSION_TIMEOUT_SECONDS, CLEANUP_INTERVAL_SECONDS
-from state import sessions, known_users, bot_info
-from mattermost import driver, initialize_driver
-from database import initialize_database, close_db_connection
 import handlers as h
+from config import CLEANUP_INTERVAL_SECONDS, PRIVATE_CHANNEL_GROUPS, SESSION_TIMEOUT_SECONDS, VISIBLE_CHANNEL_GROUPS
+from database import close_db_connection, initialize_database
+from mattermost import driver, initialize_driver
+from patches import apply_ssl_patch
+from state import bot_info, known_users, sessions
+
 
 # --- Main WebSocket Event Handler ---
 
@@ -22,7 +23,7 @@ async def message_handler(message):
 
     if msg_data.get("event") != "posted":
         return
-    
+
     data = msg_data.get("data", {})
     if data.get("channel_type") != "D":
         return
@@ -36,11 +37,15 @@ async def message_handler(message):
 
     if not all([sender_id, dm_channel_id, sender_name]) or sender_id == bot_info.get("bot_id"):
         return
-    
-    if not text and not file_ids: # Ignore messages with no content
+
+    if not text and not file_ids:  # Ignore messages with no content
         return
 
-    if text.lower().startswith("!help") or text.lower().startswith("help") or text.lower().startswith("!help!") or text.lower().startswith("help!") or text.lower().startswith("-- help") or text.lower().startswith("man"):
+    if text.lower().startswith("!help") or text.lower().startswith("help") or text.lower().startswith(
+            "!help!",
+    ) or text.lower().startswith("help!") or text.lower().startswith(
+            "-- help",
+    ) or text.lower().startswith("man"):
         message = ("### Usage\n"
                    "**DM me with the message you want delivered, I'll guide you through the process**\n \n "
                    "**Other Commands:** \n"
@@ -49,15 +54,18 @@ async def message_handler(message):
                    "!get_groups : list all available groups and their channels\n"
                    "!get_private_groups : same as above but with private groups\n"
                    '!add_group <json dict> : add public group(s) scheme: {"name1" : ["id1", "id2", ...], "name2" : ["id1", "id2", ...]}\n'
-                   "!add_private_group <json dict> : add private group(s) scheme: same as for public groups"
-                   )
+                   "!add_private_group <json dict> : add private group(s) scheme: same as for public groups")
         driver.posts.create_post({"channel_id": dm_channel_id, "message": message})
     elif text.lower().startswith("!id"):
         channel_name = text.strip().lstrip("!id").strip()
         if channel_name:
             h.handle_id_lookup(channel_name, dm_channel_id)
         else:
-            driver.posts.create_post({"channel_id": dm_channel_id, "message": "Please provide a channel name after `!id!`."})
+            driver.posts.create_post(
+                    {
+                        "channel_id": dm_channel_id, "message": "Please provide a channel name after `!id!`."
+                    },
+            )
         return
     elif text.lower().startswith("!channels"):
         lines = []
@@ -104,6 +112,7 @@ async def message_handler(message):
         elif session.get("state") == "CONFIRMATION":
             h.handle_confirmation(sender_id, session, text, sender_name, dm_channel_id)
 
+
 # --- Background Tasks ---
 
 async def session_cleanup_task():
@@ -118,21 +127,25 @@ async def session_cleanup_task():
             expired_session = sessions.pop(user_id, None)
             if expired_session:
                 try:
-                    driver.posts.create_post({
-                        "channel_id": expired_session["dm_channel_id"],
-                        "message": "⏱️ **Session expired.** You took too long to confirm. Send a new message to start over."
-                    })
+                    driver.posts.create_post(
+                            {
+                                "channel_id": expired_session["dm_channel_id"],
+                                "message":    "⏱️ **Session expired.** You took too long to confirm. Send a new message to start over."
+                            },
+                    )
                 except Exception as e:
                     print(f"Failed to send timeout notice for user {user_id}: {e}")
+
 
 def run_websocket_listener():
     """Sets up and runs the WebSocket listener in its own event loop."""
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    
+
     loop.create_task(session_cleanup_task())
-    
+
     driver.init_websocket(message_handler)
+
 
 # --- Main Execution ---
 def main():
