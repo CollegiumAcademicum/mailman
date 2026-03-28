@@ -27,13 +27,31 @@ jobs:
           # If you have a requirements file, uncomment the next line:
           pip install -r requirements.txt
 
-      #- name: Run pytest
-
-        # Using pytest is recommended for better reporting
-       # run: pytest
+      - name: Run pytest
+        run: pytest
+        env: # Inject the variables your mattermost.py expects
+          MATTERMOST_URL: "dummy.example.com"
+          MATTERMOST_PORT: 443
+          MATTERMOST_SCHEME: "https"
+          MATTERMOST_TOKEN: "dummy_token"
 
       - name: mattermost message
+        if: success() || failure() # Forces step to run even if pytest fails
         run: |
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            TEAM_NAME="Collegium"
+          else
+            TEAM_NAME="Testing"
+          fi
+          
+          
+          if [ "${{ job.status }}" = "success" ]; then
+            TEST_PASSED="True"
+          else
+            TEST_PASSED="False"
+          fi
+          
+          
           SHORT_SHA=$(git rev-parse --short ${{ github.sha }})
           COMMIT_URL="${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}"
           COMMIT_MSG=$(git log -1 --pretty=format:'%s' ${{ github.sha }} | sed 's/"/\\"/g')
@@ -48,4 +66,5 @@ jobs:
             "$COMMIT_URL" \
             "$COMMIT_MSG" \
             "${{ github.repository }}" \
-            "${{ github.server_url }}"
+            "${{ github.server_url }}" \
+            "$TEST_PASSED"
