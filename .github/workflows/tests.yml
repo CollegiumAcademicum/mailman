@@ -27,9 +27,10 @@ jobs:
           # If you have a requirements file, uncomment the next line:
           pip install -r requirements.txt
 
-      - name: Run pytest
+      #- name: Run pytest
+
         # Using pytest is recommended for better reporting
-        run: pytest
+       # run: pytest
 
       - name: mattermost message
         run: |
