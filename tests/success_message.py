@@ -10,6 +10,8 @@ author = sys.argv[5] # ${{ github.actor }}
 short_sha = sys.argv[6] # $(git rev-parse --short ${{ github.sha }})
 commit_url = sys.argv[7] # "${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}"
 commit_message = sys.argv[8] # $(git log -1 --pretty=format:'%s' ${{ github.sha }} | sed 's/"/\\"/g')
+repo_name = sys .argv[9] # ${{ github.repository }}
+github_server_url = sys.argv[10] # ${{ github.server_url }}
 
 
 driver = Driver(
@@ -25,7 +27,7 @@ team_id = driver.teams.get_team_by_name(TEAM_NAME)["id"]
 print(f"Bot connected. Bot ID: {bot_id} | Team ID: {team_id}")
 
 #(f"✅ **Unit Tests Passed!**\n"
- #f"**Repository:** [${{ github.repository }}](${{ github.server_url }}/${{ github.repository }})\n"
+ #f"**Repository:** [${{ github.repository }}]({github_server_url}/${{ github.repository }})\n"
  #f"**Branch:** {branch}\n"
  #f"**Author:** {author}\n"
  #f"**Commit:** [{short_sha}]({commit_url})\n"
@@ -38,7 +40,7 @@ driver.posts.create_post(
                 "channel_id": "14d9s71is3fh3duwj9a6u9k4jr",
                 "message": "unit test completed"
                            f"✅ **Unit Tests Passed!**\n"
-                           f"**Repository:** [${{ github.repository }}](${{ github.server_url }}/${{ github.repository }})\n"
+                           f"**Repository:** [{repo_name}]({github_server_url}/{repo_name})\n"
                            f"**Branch:** {branch}\n"
                            f"**Author:** {author}\n"
                            f"**Commit:** [{short_sha}]({commit_url})\n"
