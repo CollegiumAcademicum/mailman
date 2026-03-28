@@ -23,13 +23,13 @@ bot_id = driver.users.get_user("me")["id"]
 bot_username = driver.users.get_user("me")["username"]
 team_id = driver.teams.get_team_by_name(TEAM_NAME)["id"]
 
-channel_id = driver.channels.get_channel_by_name_and_team_name(TEAM_NAME, "bot-status")
+channel = driver.channels.get_channel_by_name_and_team_name(TEAM_NAME, "bot-status")
 
 print(f"Bot connected. Bot ID: {bot_id} | Team ID: {team_id}")
 
 driver.posts.create_post(
     {
-        "channel_id": "x7bewz9mafn17e8nd6wwsqzx7r",
+        "channel_id": channel["id"],
         "message": f"✅ **Unit Tests Passed!**\n"
         f"**Repository:** [{repo_name}]({github_server_url}/{repo_name})\n"
         f"**Branch:** {branch}\n"
