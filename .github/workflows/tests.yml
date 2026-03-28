@@ -67,4 +67,4 @@ jobs:
             "$COMMIT_MSG" \
             "${{ github.repository }}" \
             "${{ github.server_url }}" \
-            "False"
+            "$TEST_PASSED"
