@@ -68,7 +68,3 @@ jobs:
             "${{ github.repository }}" \
             "${{ github.server_url }}" \
             "$TEST_PASSED"
-
-      - name: fail if failed
-        if: failure()
-        run: exit 1
