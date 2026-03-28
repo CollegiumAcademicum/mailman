@@ -36,9 +36,12 @@ jobs:
           MATTERMOST_TOKEN: "dummy_token"
 
       - name: mattermost message
-        if: success() || failure() # Forces step to run even if pytest fails
+        if: always() # Forces step to run even if pytest fails
         run: |
-          if [ "${{ github.ref_name }}" = "main" ]; then
+          # Check if it is a PR targeting main OR a direct push to main
+          if [[ "${{ github.event_name }}" == "pull_request" && "${{ github.base_ref }}" == "main" ]]; then
+            TEAM_NAME="Collegium"
+          elif [[ "${{ github.event_name }}" == "push" && "${{ github.ref_name }}" == "main" ]]; then
             TEAM_NAME="Collegium"
           else
             TEAM_NAME="Testing"
