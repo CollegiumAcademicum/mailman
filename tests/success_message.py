@@ -1,4 +1,5 @@
 import sys
+import datetime
 
 from mattermostdriver import Driver
 
@@ -30,12 +31,16 @@ print(f"Bot connected. Bot ID: {bot_id} | Team ID: {team_id}")
 driver.posts.create_post(
     {
         "channel_id": channel["id"],
-        "message": f"✅ **Unit Tests Passed!**\n"
+        "message": f"### ✅ **Unit Tests Passed!**\n"
+        f"--- {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ---\n\n"
         f"**Repository:** [{repo_name}]({github_server_url}/{repo_name})\n"
         f"**Branch:** {branch}\n"
         f"**Author:** {author}\n"
         f"**Commit:** [{short_sha}]({commit_url})\n"
-        f"**Message:** {commit_message}",
+        f"**Message:** {commit_message}\n"
+        f"**Bot ID:** {bot_id}\n"
+        f"**Bot Username:** {bot_username}\n"
+        f"**Team ID:** {team_id}\n",
     }
 )
 
