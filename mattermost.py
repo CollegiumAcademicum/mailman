@@ -3,17 +3,15 @@ from state import bot_info
 from mattermostdriver import Driver
 
 # Define driver as a global variable, but do not initialize it yet.
-driver: Driver = None
-
+driver = Driver(
+        {"url": MATTERMOST_URL, "token": BOT_TOKEN, "scheme": "https", "port": 443}
+    )
 
 def initialize_driver():
     """Initializes the Mattermost driver, logs the bot in, and fetches essential IDs."""
-    global driver
     print("Connecting to Mattermost...")
 
-    driver = Driver(
-        {"url": MATTERMOST_URL, "token": BOT_TOKEN, "scheme": "https", "port": 443}
-    )
+
 
     driver.login()
     bot_info["bot_id"] = driver.users.get_user("me")["id"]

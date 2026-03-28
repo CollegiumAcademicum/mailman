@@ -2,7 +2,7 @@ name: Python Unit Tests
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, dev ]
   pull_request:
     branches: [ main ]
 
@@ -31,12 +31,7 @@ jobs:
         # Using pytest is recommended for better reporting
         run: pytest
 
-      - name: try to send Mattermost message
-        if: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
-        run: python3 ./tests/success_message.py ${{ secrets.MATTERMOST_URL }} ${{ secrets.MATTERMOST_TOKEN }} Testing ${{ github.ref_name }} ${{ github.actor }} $(git rev-parse --short ${{ github.sha }}) "${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}" $(git log -1 --pretty=format:'%s' ${{ github.sha }} | sed 's/"/\\"/g') ${{ github.repository }} ${{ github.server_url }}
-
-      - name: mattermost messagee 2
-        if: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
+      - name: mattermost message
         run: |
           SHORT_SHA=$(git rev-parse --short ${{ github.sha }})
           COMMIT_URL="${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}"
