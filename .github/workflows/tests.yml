@@ -34,6 +34,12 @@ jobs:
 
       - name: mattermost message
         run: |
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            TEAM_NAME="Collegium"
+          else
+            TEAM_NAME="Testing"
+          fi
+          
           SHORT_SHA=$(git rev-parse --short ${{ github.sha }})
           COMMIT_URL="${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}"
           COMMIT_MSG=$(git log -1 --pretty=format:'%s' ${{ github.sha }} | sed 's/"/\\"/g')
