@@ -14,6 +14,15 @@ commit_message = sys.argv[8]  # $(git log -1 --pretty=format:'%s' ${{ github.sha
 repo_name = sys.argv[9]  # ${{ github.repository }}
 github_server_url = sys.argv[10]  # ${{ github.server_url }}
 
+if sys.argv[11] == "True":
+    test_status = "Passed"
+    badge_emoji = "✅"
+else:
+    test_status = "Failed"
+    badge_emoji = "❌"
+
+
+
 
 driver = Driver(
     {"url": MATTERMOST_URL, "token": BOT_TOKEN, "scheme": "https", "port": 443}
@@ -31,7 +40,7 @@ print(f"Bot connected. Bot ID: {bot_id} | Team ID: {team_id}")
 driver.posts.create_post(
     {
         "channel_id": channel["id"],
-        "message": f"### ✅ **Unit Tests Passed!**\n"
+        "message": f"### {badge_emoji} **Unit Tests {test_status}!**\n"
         f"--- {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ---\n\n"
         f"**Repository:** [{repo_name}]({github_server_url}/{repo_name})\n"
         f"**Branch:** {branch}\n"
