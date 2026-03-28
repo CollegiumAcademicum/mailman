@@ -13,14 +13,13 @@ commit_message = sys.argv[8] # $(git log -1 --pretty=format:'%s' ${{ github.sha 
 
 
 driver = Driver(
-        {"url": MATTERMOST_URL, "token": BOT_TOKEN, "scheme": "https", "port": 443}
-    )
+    {"url": MATTERMOST_URL, "token": BOT_TOKEN, "scheme": "https", "port": 443}
+)
 
 driver.login()
 bot_id = driver.users.get_user("me")["id"]
 bot_username = driver.users.get_user("me")["username"]
 team_id = driver.teams.get_team_by_name(TEAM_NAME)["id"]
-
 
 
 print(f"Bot connected. Bot ID: {bot_id} | Team ID: {team_id}")
