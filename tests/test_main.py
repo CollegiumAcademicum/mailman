@@ -62,18 +62,20 @@ class TestBot(unittest.TestCase):
             }
         )
 
-    @patch("main.driver", new_callable=MagicMock)
+    @patch("handlers.driver", new_callable=MagicMock)
     def test_channels_command(self, mock_driver):
         mock_driver.teams.get_user_teams.return_value = [{"id": "team_id_1"}]
         mock_driver.channels.get_channels_for_user.return_value = [
-            {"display_name": "Channel 1", "name": "channel-1", "id": "channel_id_1"}
+            {"display_name": "Channel 1", "name": "channel-1", "id": "channel_id_1", "team_id" : "team_id_1"}
         ]
+        mock_driver.teams.get_team.return_value = {"display_name": "Team 1"}
         message = self.create_message("!channels")
         asyncio.run(message_handler(message))
+        expected_message = "- Channel 1 (channel-1) | ID: channel_id_1 Team name: Team 1 \n "
         mock_driver.posts.create_post.assert_called_with(
             {
                 "channel_id": "dm_channel_id_1",
-                "message": "Channel 1 (channel-1) | ID: channel_id_1",
+                "message": expected_message,
             }
         )
 
@@ -99,7 +101,7 @@ class TestBot(unittest.TestCase):
         asyncio.run(message_handler(message))
         self.assertIn("new_user", known_users)
         self.assertIn(
-            "Welcome, I'm the Mailman",
+            "Welcome, I'm the Postbot",
             mock_driver.posts.create_post.call_args[0][0]["message"],
         )
 
@@ -112,7 +114,9 @@ class TestBot(unittest.TestCase):
         mock_driver.channels.get_channel.return_value = {
             "name": "channel-1",
             "display_name": "Channel 1",
+            "team_id": "team_id_1"
         }
+        mock_driver.teams.get_team.return_value = {"display_name": "Team 1"}
 
         message1 = self.create_message("My broadcast message")
         asyncio.run(message_handler(message1))

@@ -28,7 +28,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run pytest
-        run: pytest
+        run: pytest -vv
         env: # Inject the variables your mattermost.py expects
           MATTERMOST_URL: "dummy.example.com"
           MATTERMOST_PORT: 443
