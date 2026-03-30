@@ -99,7 +99,7 @@ class TestBot(unittest.TestCase):
         asyncio.run(message_handler(message))
         self.assertIn("new_user", known_users)
         self.assertIn(
-            "Welcome, I'm the Mailman",
+            "Welcome, I'm the Postbot",
             mock_driver.posts.create_post.call_args[0][0]["message"],
         )
 
