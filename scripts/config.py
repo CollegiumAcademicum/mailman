@@ -47,8 +47,6 @@ HELP_MESSAGE: str = (
 
 
 
-
-
 def _logging_setup():
     if not os.path.exists(LOG_FILE):
         os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
