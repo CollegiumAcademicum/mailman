@@ -43,7 +43,7 @@ async def message_handler(message):
         return
 
     if text.lower().startswith(("help", "!help", "--help", "man")):
-        driver.posts.create_post({"channel_id": dm_channel_id, "message": config.help_message})
+        driver.posts.create_post({"channel_id": dm_channel_id, "message": config.HELP_MESSAGE})
     elif text.lower().startswith("!id"):
         channel_name = text.strip().lstrip("!id").strip()
         if channel_name:

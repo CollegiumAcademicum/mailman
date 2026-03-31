@@ -23,7 +23,7 @@ CHANNEL_GROUPS: dict[str, list[str]] = {**VISIBLE_CHANNEL_GROUPS, **PRIVATE_CHAN
 
 WHITELIST = set(channel_data.get("whitelist", []))
 
-help_message: str = (
+HELP_MESSAGE: str = (
             "### Usage\n"
             "**DM me with the message you want delivered, I'll guide you through the process**\n \n "
             "**Other Commands:** \n"
