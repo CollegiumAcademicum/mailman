@@ -41,11 +41,12 @@ def resolve_targets(requested_inputs):
     direct_inputs = set()
 
     for item in requested_inputs:
-        clean_item = item.strip().lower().strip("#")
-        if clean_item in CHANNEL_GROUPS:
-            group_channel_ids.update(CHANNEL_GROUPS[clean_item])
-            logging.debug(f"Resolved group '{clean_item}' to IDs: {CHANNEL_GROUPS[clean_item]}")
+        stripped_item = item.strip()
+        if stripped_item in CHANNEL_GROUPS:
+            group_channel_ids.update(CHANNEL_GROUPS[stripped_item])
+            logging.debug(f"Resolved group '{stripped_item}' to IDs: {CHANNEL_GROUPS[stripped_item]}")
         else:
+            clean_item = stripped_item.lower().strip("#")
             direct_inputs.add(clean_item)
 
     valid_ids.update(group_channel_ids)
