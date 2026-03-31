@@ -64,14 +64,14 @@ class TestBot(unittest.TestCase):
 
     @patch("scripts.handlers.driver", new_callable=MagicMock)
     def test_channels_command(self, mock_driver):
-        mock_driver.teams.get_user_teams.return_value = [{"id": "team_id_1"}]
+        mock_driver.teams.get_user_teams.return_value = [{"id": "team_id_1", "display_name": "Team 1"}]
         mock_driver.channels.get_channels_for_user.return_value = [
             {"display_name": "Channel 1", "name": "channel-1", "id": "channel_id_1", "team_id" : "team_id_1"}
         ]
         mock_driver.teams.get_team.return_value = {"display_name": "Team 1"}
         message = self.create_message("!channels")
         asyncio.run(message_handler(message))
-        expected_message = "- Channel 1 (channel-1) | ID: channel_id_1 Team name: Team 1 \n "
+        expected_message = "- `Channel 1` (channel-1) | ID: `channel_id_1` Team name: Team 1 \n "
         mock_driver.posts.create_post.assert_called_with(
             {
                 "channel_id": "dm_channel_id_1",
@@ -153,7 +153,7 @@ class TestBot(unittest.TestCase):
 
         self.assertNotIn("user_id_1", sessions)
 
-        broadcast_message = "📢 **Message from @testuser**\n \n \nMy broadcast message\n \n \n \n*--- END of Message ---*\n*If YOU want to use the services of me (@testbot) just DM me*"
+        broadcast_message = "📢 **Message from @testuser**\n \n \nMy broadcast message\n \n \n \n*--- END of Message ---*\n*To use my services (@testbot) just DM me*"
         mock_driver.posts.create_post.assert_any_call(
             {"channel_id": "target_id_1", "message": broadcast_message, "file_ids": []}
         )
