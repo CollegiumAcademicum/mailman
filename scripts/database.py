@@ -1,6 +1,8 @@
 import sqlite3
 import json
+import logging
 import threading
+import os
 
 # Use a thread-local connection to ensure thread safety
 db_connection = threading.local()
@@ -9,8 +11,9 @@ db_connection = threading.local()
 def get_db_connection():
     """Opens a new database connection if one is not already open for the current thread."""
     if not hasattr(db_connection, "conn") or db_connection.conn is None:
+        logging.debug("Creating new database connection for thread.")
         db_connection.conn = sqlite3.connect(
-            "broadcast_log.db", check_same_thread=False
+                "broadcast_log.db", check_same_thread=False
         )
     return db_connection.conn
 
@@ -20,6 +23,9 @@ def initialize_database():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
+
+        cursor.execute('PRAGMA auto_vacuum = FULL;')
+        cursor.execute('VACUUM;')
 
         # Create table if it doesn't exist
         cursor.execute("""
@@ -33,16 +39,34 @@ def initialize_database():
             )
         """)
 
+        # automatic housekeeping to limit the amount of database rows
+        cursor.execute(
+            '''
+            CREATE TRIGGER IF NOT EXISTS enforce_row_limit
+                AFTER INSERT
+                ON broadcasts
+            BEGIN
+                -- Deletes rows older than the current ID minus 100,000
+                DELETE FROM broadcasts WHERE id <= (NEW.id - 100000);
+            END;
+                       '''
+            )
+
+
         # Add the file_ids column if it doesn't exist (for backward compatibility)
         cursor.execute("PRAGMA table_info(broadcasts)")
         columns = [column[1] for column in cursor.fetchall()]
         if "file_ids" not in columns:
+            logging.info("Adding 'file_ids' column to 'broadcasts' table.")
             cursor.execute("ALTER TABLE broadcasts ADD COLUMN file_ids TEXT")
 
         conn.commit()
-        print("Database initialized successfully.")
+        if os.path.exists("broadcast_log.db"):
+            logging.info(f"Database initialized successfully.")
+        else:
+            logging.warning("Database initialization failed.")
     except sqlite3.Error as e:
-        print(f"Database error during initialization: {e}")
+        logging.error(f"Database error during initialization: {e}")
 
 
 def log_broadcast(sender_name, message_content, target_channels, file_ids=None):
@@ -59,12 +83,14 @@ def log_broadcast(sender_name, message_content, target_channels, file_ids=None):
             (sender_name, message_content, channels_json, files_json),
         )
         conn.commit()
+        logging.info(f"Logged broadcast from {sender_name} to database.")
     except sqlite3.Error as e:
-        print(f"Failed to log broadcast to database: {e}")
+        logging.error(f"Failed to log broadcast to database: {e}")
 
 
 def close_db_connection():
     """Closes the database connection for the current thread."""
     if hasattr(db_connection, "conn") and db_connection.conn is not None:
+        logging.debug("Closing database connection for thread.")
         db_connection.conn.close()
         db_connection.conn = None

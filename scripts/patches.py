@@ -1,4 +1,5 @@
 import ssl
+import logging
 
 
 def apply_ssl_patch():
@@ -10,8 +11,9 @@ def apply_ssl_patch():
     orig_create_default_context = ssl.create_default_context
 
     def patched_create_default_context(*args, **kwargs):
+        logging.debug("Patching ssl.create_default_context with SERVER_AUTH purpose.")
         kwargs["purpose"] = ssl.Purpose.SERVER_AUTH
         return orig_create_default_context(*args, **kwargs)
 
     ssl.create_default_context = patched_create_default_context
-    print("Applied SSL patch for mattermostdriver.")
+    logging.info("Applied SSL patch for mattermostdriver.")

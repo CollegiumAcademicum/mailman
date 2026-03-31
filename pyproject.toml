@@ -1,0 +1,22 @@
+[project]
+name = "postbot"
+version = "0.1.0"
+description = "The postbot is a simple Mattermost Bot used to relay messages to many groups easily"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "anyio>=4.13.0",
+    "dotenv>=0.9.9",
+    "fastapi>=0.135.2",
+    "mattermostdriver>=7.3.2",
+    "pydantic-core>=2.41.5",
+    "pytest>=9.0.2",
+    "requests>=2.33.0",
+    "starlette>=1.0.0",
+    "ty>=0.0.24",
+    "uvicorn>=0.42.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = "."
+testpaths = "tests"

@@ -1,36 +1,50 @@
 import json
+import logging
 import time
 
-from config import PRIVATE_CHANNEL_GROUPS, VISIBLE_CHANNEL_GROUPS, WHITELIST
-from database import log_broadcast
-from mattermost import driver, resolve_targets
-from state import bot_info, known_users, sessions
+from scripts.config import PRIVATE_CHANNEL_GROUPS, VISIBLE_CHANNEL_GROUPS, WHITELIST
+from scripts.database import log_broadcast
+from scripts.mattermost import driver, resolve_targets
+from scripts.state import bot_info, known_users, sessions
 
 
 def handle_id_lookup(channel_name, dm_channel_id):
     """Looks up and returns the ID of a given channel name."""
+    logging.info(f"Handling ID lookup for channel: {channel_name}")
     try:
         channel = driver.channels.get_channel_by_name(bot_info["team_id"], channel_name)
         response = f"The ID for channel `{channel_name}` is: `{channel['id']}`"
-    except Exception:
+        logging.info(f"Found channel ID {channel['id']} for name {channel_name}")
+    except Exception as e:
         response = f"⚠️ Could not find a channel named `{channel_name}`."
+        logging.error(f"Could not find channel {channel_name}: {e}")
 
     driver.posts.create_post({"channel_id": dm_channel_id, "message": response})
 
-def handle_channels_command(dm_channel_id):
-    lines = []
-    mm_teams = driver.teams.get_user_teams("me")
-    # 2. Iterate through teams and fetch the associated channels
-    for team in mm_teams:
-        channels = driver.channels.get_channels_for_user("me", team["id"])
-        for channel in channels[:10:]:
-            # display_name is the UI name, name is the system URL name
-            if channel['team_id']:
-                team_name = driver.teams.get_team(channel['team_id']).get("display_name", "N/A")
 
-                lines.append(
-                    f"- {channel['display_name']} ({channel['name']}) | ID: {channel['id']} Team name: {team_name} \n "
-                )
+def handle_channels_command(dm_channel_id):
+    logging.info("Handling !channels command.")
+    lines = []
+    try:
+        mm_teams = driver.teams.get_user_teams("me")
+        logging.debug(f"Retrieved {len(mm_teams)} teams for bot")
+        # 2. Iterate through teams and fetch the associated channels
+        for team in mm_teams:
+            channels = driver.channels.get_channels_for_user("me", team["id"])
+            logging.debug(f"Retrieved {len(channels)} channels for team {team['display_name']}")
+            for channel in channels:
+                # display_name is the UI name, name is the system URL name
+                if channel["team_id"]:
+                    team_name = driver.teams.get_team(channel["team_id"]).get(
+                        "display_name", "N/A"
+                    )
+
+                    lines.append(
+                        f"- `{channel['display_name']}` ({channel['name']}) | ID: `{channel['id']}` Team name: {team_name} \n "
+                    )
+    except Exception as e:
+        logging.error(f"Error fetching channels: {e}")
+        lines.append("Error fetching channels.")
 
     message = "\n".join(lines)
     driver.posts.create_post({"channel_id": dm_channel_id, "message": message})
@@ -38,6 +52,7 @@ def handle_channels_command(dm_channel_id):
 
 def handle_new_user(sender_id, dm_channel_id):
     """Sends a welcome message to a first-time user."""
+    logging.info(f"Handling new user: {sender_id}")
     known_users.add(sender_id)
     driver.posts.create_post(
         {
@@ -55,6 +70,7 @@ def handle_new_user(sender_id, dm_channel_id):
 
 def handle_new_session(sender_id, dm_channel_id, text, file_ids):
     """Starts a new broadcast session with the user's message and files."""
+    logging.info(f"Handling new session for user: {sender_id}")
     sessions[sender_id] = {
         "state": "AWAITING_CHANNELS",
         "message": text,
@@ -67,13 +83,18 @@ def handle_new_session(sender_id, dm_channel_id, text, file_ids):
     for channel_id in WHITELIST:
         try:
             channel_info = driver.channels.get_channel(channel_id)
-            if channel_info['team_id']:
-                team_name = driver.teams.get_team(channel_info['team_id']).get("display_name", "N/A")
-                print(f"team_name: {team_name}, display_name: {channel_info['display_name']}, name: {channel_info['name']}")
+            if channel_info["team_id"]:
+                team_name = driver.teams.get_team(channel_info["team_id"]).get(
+                    "display_name", "N/A"
+                )
+                logging.debug(
+                    f"team_name: {team_name}, display_name: {channel_info['display_name']}, name: {channel_info['name']}"
+                )
                 allowed_channels.append(
                     f"- name: `{channel_info['name']}`    (display_name `{channel_info['display_name']}`- ID `{channel_id}` - Team name: `{team_name}`)"
                 )
-        except Exception:
+        except Exception as e:
+            logging.error(f"Error fetching info for channel {channel_id}: {e}")
             allowed_channels.append(f"- `(ID not found)` (`{channel_id}`)")
     allowed_channels.sort()
 
@@ -102,10 +123,12 @@ def handle_new_session(sender_id, dm_channel_id, text, file_ids):
 
 def handle_channel_selection(session, text, dm_channel_id):
     """Processes the user's channel selection and asks for confirmation."""
+    logging.info(f"Handling channel selection: {text}")
     requested_inputs = text.split(",")
     valid_ids, valid_names, invalid_names = resolve_targets(requested_inputs)
 
     if not valid_ids:
+        logging.warning(f"No valid channels found for input: {text}")
         driver.posts.create_post(
             {
                 "channel_id": dm_channel_id,
@@ -122,6 +145,7 @@ def handle_channel_selection(session, text, dm_channel_id):
             "timestamp": time.time(),
         }
     )
+    logging.info(f"Channels selected for broadcast: {valid_names}")
 
     file_notice = (
         "\n**Files Attached:** {}".format(len(session.get("file_ids", [])))
@@ -135,7 +159,7 @@ def handle_channel_selection(session, text, dm_channel_id):
     )
     preview_text = (
         f"**Preview:**\n{session['message']}\n \n"
-        f"**Targets:** {', '.join(valid_names)}{file_notice}{warning_text}\n \n"
+        f"**Targets:** \n{'\n'.join(valid_names)}{file_notice}{warning_text}\n \n"
         "Reply with **yes** to send or **no** to cancel."
     )
     driver.posts.create_post({"channel_id": dm_channel_id, "message": preview_text})
@@ -143,14 +167,16 @@ def handle_channel_selection(session, text, dm_channel_id):
 
 def handle_confirmation(user_id, session, text, sender_name, dm_channel_id):
     """Handles the final 'yes' or 'no' confirmation and ends the session."""
+    logging.info(f"Handling confirmation from {sender_name}: {text}")
     if text.lower() == "yes":
+        logging.info(f"User {sender_name} confirmed broadcast.")
         message = (
             f"📢 **Message from @{sender_name}**\n \n \n{session['message']}"
             f"\n \n \n \n*--- END of Message ---*\n"
-            f"*If YOU want to use the services of me (@{bot_info['bot_username']}) just DM me*"
+            f"*To use my services (@{bot_info['bot_username']}) just DM me*"
         )
         original_file_ids = session.get("file_ids", [])
-        print(f"original_file_ids: {original_file_ids}")
+        logging.info(f"Original file IDs: {original_file_ids}")
         files = {}
         for original_id in original_file_ids:
             try:
@@ -165,8 +191,8 @@ def handle_confirmation(user_id, session, text, sender_name, dm_channel_id):
                     # It was a standard file; access the .content attribute of the Response object
                     files[filename] = response.content
             except Exception as e:
-                print(f"Failed to fetch file {original_id}: {e}")
-        print(f"files.keys(): {files.keys()}")
+                logging.error(f"Failed to fetch file {original_id}: {e}")
+        logging.info(f"Files to upload: {list(files.keys())}")
         file_ids = []
         for channel_id in session["target_ids"]:
             file_ids = []
@@ -176,18 +202,21 @@ def handle_confirmation(user_id, session, text, sender_name, dm_channel_id):
                     file_info = driver.files.upload_file(
                         channel_id=channel_id, files={"files": (filename, content)}
                     )
-                    print(f"File uploaded successfully: {file_info}")
-                    print(file_ids.append(file_info["file_infos"][0]["id"]))
+                    logging.info(f"File uploaded successfully: {file_info}")
+                    file_ids.append(file_info["file_infos"][0]["id"])
                 except Exception as e:
-                    print(f"Failed to upload file to {channel_id}: {e}")
+                    logging.error(f"Failed to upload file to {channel_id}: {e}")
             try:
-                post_options: dict[str, str | list[str]] = {"channel_id": channel_id,
-                                "message": message,
-                                "file_ids": file_ids}
+                post_options: dict[str, str | list[str]] = {
+                    "channel_id": channel_id,
+                    "message": message,
+                    "file_ids": file_ids,
+                }
 
                 driver.posts.create_post(post_options)
+                logging.info(f"Posted message to channel {channel_id}")
             except Exception as e:
-                print(f"Failed to post to {channel_id}: {e}")
+                logging.error(f"Failed to post to {channel_id}: {e}")
 
         log_broadcast(
             sender_name=sender_name,
@@ -207,11 +236,13 @@ def handle_confirmation(user_id, session, text, sender_name, dm_channel_id):
         )
 
     elif text.lower() == "no":
+        logging.info(f"User {sender_name} canceled broadcast.")
         driver.posts.create_post(
             {"channel_id": dm_channel_id, "message": "❌ **Broadcast canceled.**"}
         )
 
     else:
+        logging.warning(f"Invalid confirmation from {sender_name}: {text}")
         driver.posts.create_post(
             {
                 "channel_id": dm_channel_id,
@@ -221,9 +252,12 @@ def handle_confirmation(user_id, session, text, sender_name, dm_channel_id):
         return
 
     del sessions[user_id]
+    logging.info(f"Session for user {user_id} deleted.")
 
 
 def handle_add_group(text, dm_channel_id, private=False):
+    group_type = "private" if private else "visible"
+    logging.info(f"Handling add {group_type} group.")
     if private:
         targeted_groups = PRIVATE_CHANNEL_GROUPS
         incoming_message = text.strip().lstrip("!_add_private_group").strip()
@@ -235,6 +269,7 @@ def handle_add_group(text, dm_channel_id, private=False):
 
     # 1. Check if the user actually provided payload data
     if not incoming_message:
+        logging.warning("!add_group command used without payload.")
         driver.posts.create_post(
             {
                 "channel_id": dm_channel_id,
@@ -245,52 +280,53 @@ def handle_add_group(text, dm_channel_id, private=False):
     try:
         # 2. Attempt to parse the JSON
         new_groups_dict = json.loads(incoming_message)
-        print(f"new_groups_dict pre cleaning: {new_groups_dict}")
+        logging.debug(f"Parsed new groups: {new_groups_dict}")
         # 3. Validate that the parsed JSON is actually a dictionary
         if not isinstance(new_groups_dict, dict):
             raise ValueError("Input must be a JSON object (dictionary).")
         for key, channel_list in new_groups_dict.copy().items():
-            print(f"list {channel_list}")
+            logging.info(f"Validating channels for group {key}: {channel_list}")
             for channel_id in channel_list.copy():
-                print(f"id {channel_id}")
                 try:
                     driver.channels.get_channel(channel_id)
                 except Exception:
                     channel_list.remove(channel_id)
-                    print(f"popped {channel_id}")
+                    logging.warning(
+                        f"Removed invalid channel ID {channel_id} from group {key}"
+                    )
             if len(channel_list) == 0:
                 new_groups_dict.pop(key)
-                print(f"removed {key}")
-                print(f"dict: {new_groups_dict}")
+                logging.warning(f"Removed empty group {key}")
 
-        print(f"new_groups_dict after cleaning: {new_groups_dict}")
+        logging.debug(f"Cleaned new groups: {new_groups_dict}")
 
         if len(new_groups_dict) != 0:
             # 4. Integrate the new group into your global state
             targeted_groups.update(new_groups_dict)
-            print("updated")
+            logging.info("Updated groups in memory.")
 
-            with open("channels.json", "r") as f:
+            with open("../channels.json", "r") as f:
                 data = json.load(f)
-            print("loaded")
+            logging.debug("Loaded channels.json")
 
             data[group] = targeted_groups
-            with open("channels.json", "w") as f:
+            with open("../channels.json", "w") as f:
                 json.dump(data, f, indent=4)
 
-            print("written")
+            logging.info("Written updated groups to channels.json")
             driver.posts.create_post(
                 {"channel_id": dm_channel_id, "message": "✅ Group added successfully!"}
             )
-            print("done")
         else:
+            logging.warning("No valid groups to add after cleaning.")
             driver.posts.create_post(
                 {
                     "channel_id": dm_channel_id,
                     "message": "❌ Group could not be added. Check your JSON syntax and the channel IDs!",
                 }
             )
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as e:
+        logging.error(f"Invalid JSON in !add_group command: {e}")
         driver.posts.create_post(
             {
                 "channel_id": dm_channel_id,
@@ -298,9 +334,11 @@ def handle_add_group(text, dm_channel_id, private=False):
             }
         )
     except ValueError as e:
+        logging.error(f"ValueError in !add_group command: {e}")
         driver.posts.create_post({"channel_id": dm_channel_id, "message": f"❌ {e}"})
     except Exception as e:
         # Catch-all for unexpected parsing or assignment issues
+        logging.error(f"Unexpected error in !add_group: {e}")
         driver.posts.create_post(
             {
                 "channel_id": dm_channel_id,
