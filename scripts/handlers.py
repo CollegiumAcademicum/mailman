@@ -159,7 +159,7 @@ def handle_channel_selection(session, text, dm_channel_id):
     )
     preview_text = (
         f"**Preview:**\n{session['message']}\n \n"
-        f"**Targets:** {', '.join(valid_names)}{file_notice}{warning_text}\n \n"
+        f"**Targets:** \n{'\n'.join(valid_names)}{file_notice}{warning_text}\n \n"
         "Reply with **yes** to send or **no** to cancel."
     )
     driver.posts.create_post({"channel_id": dm_channel_id, "message": preview_text})
@@ -173,7 +173,7 @@ def handle_confirmation(user_id, session, text, sender_name, dm_channel_id):
         message = (
             f"📢 **Message from @{sender_name}**\n \n \n{session['message']}"
             f"\n \n \n \n*--- END of Message ---*\n"
-            f"*If YOU want to use the services of me (@{bot_info['bot_username']}) just DM me*"
+            f"*To use my services (@{bot_info['bot_username']}) just DM me*"
         )
         original_file_ids = session.get("file_ids", [])
         logging.info(f"Original file IDs: {original_file_ids}")
