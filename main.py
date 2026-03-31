@@ -5,12 +5,12 @@ import logging
 import threading
 import time
 
-import handlers as h
-import config
-from database import close_db_connection, initialize_database
-from mattermost import driver, initialize_driver
-from patches import apply_ssl_patch
-from state import bot_info, known_users, sessions
+from scripts import handlers as h
+import scripts.config as config
+from scripts.database import close_db_connection, initialize_database
+from scripts.mattermost import driver, initialize_driver
+from scripts.patches import apply_ssl_patch
+from scripts.state import bot_info, known_users, sessions
 
 
 
@@ -19,7 +19,7 @@ from state import bot_info, known_users, sessions
 
 async def message_handler(message):
     """The main entry point for processing incoming WebSocket messages."""
-    logging.info("Received message from WebSocket.")
+    logging.debug("Received message from WebSocket.")
     try:
         msg_data = json.loads(message)
     except json.JSONDecodeError:
@@ -135,7 +135,7 @@ async def session_cleanup_task():
     """Periodically cleans up expired user sessions."""
     while True:
         await asyncio.sleep(config.CLEANUP_INTERVAL_SECONDS)
-        logging.info("Running session cleanup task.")
+        logging.debug("Running session cleanup task.")
         current_time = time.time()
         expired_users = [
             uid

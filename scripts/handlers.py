@@ -2,10 +2,10 @@ import json
 import logging
 import time
 
-from config import PRIVATE_CHANNEL_GROUPS, VISIBLE_CHANNEL_GROUPS, WHITELIST
-from database import log_broadcast
-from mattermost import driver, resolve_targets
-from state import bot_info, known_users, sessions
+from scripts.config import PRIVATE_CHANNEL_GROUPS, VISIBLE_CHANNEL_GROUPS, WHITELIST
+from scripts.database import log_broadcast
+from scripts.mattermost import driver, resolve_targets
+from scripts.state import bot_info, known_users, sessions
 
 
 def handle_id_lookup(channel_name, dm_channel_id):
@@ -85,7 +85,7 @@ def handle_new_session(sender_id, dm_channel_id, text, file_ids):
                 team_name = driver.teams.get_team(channel_info["team_id"]).get(
                     "display_name", "N/A"
                 )
-                logging.info(
+                logging.debug(
                     f"team_name: {team_name}, display_name: {channel_info['display_name']}, name: {channel_info['name']}"
                 )
                 allowed_channels.append(
@@ -278,7 +278,7 @@ def handle_add_group(text, dm_channel_id, private=False):
     try:
         # 2. Attempt to parse the JSON
         new_groups_dict = json.loads(incoming_message)
-        logging.info(f"Parsed new groups: {new_groups_dict}")
+        logging.debug(f"Parsed new groups: {new_groups_dict}")
         # 3. Validate that the parsed JSON is actually a dictionary
         if not isinstance(new_groups_dict, dict):
             raise ValueError("Input must be a JSON object (dictionary).")
@@ -296,19 +296,19 @@ def handle_add_group(text, dm_channel_id, private=False):
                 new_groups_dict.pop(key)
                 logging.warning(f"Removed empty group {key}")
 
-        logging.info(f"Cleaned new groups: {new_groups_dict}")
+        logging.debug(f"Cleaned new groups: {new_groups_dict}")
 
         if len(new_groups_dict) != 0:
             # 4. Integrate the new group into your global state
             targeted_groups.update(new_groups_dict)
             logging.info("Updated groups in memory.")
 
-            with open("channels.json", "r") as f:
+            with open("../channels.json", "r") as f:
                 data = json.load(f)
-            logging.info("Loaded channels.json")
+            logging.debug("Loaded channels.json")
 
             data[group] = targeted_groups
-            with open("channels.json", "w") as f:
+            with open("../channels.json", "w") as f:
                 json.dump(data, f, indent=4)
 
             logging.info("Written updated groups to channels.json")

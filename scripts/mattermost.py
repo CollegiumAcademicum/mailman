@@ -1,6 +1,6 @@
 import logging
-from config import MATTERMOST_URL, BOT_TOKEN, TEAM_NAME, WHITELIST, CHANNEL_GROUPS
-from state import bot_info
+from scripts.config import MATTERMOST_URL, BOT_TOKEN, TEAM_NAME, WHITELIST, CHANNEL_GROUPS
+from scripts.state import bot_info
 from mattermostdriver import Driver
 
 # Define driver as a global variable, but do not initialize it yet.
@@ -44,7 +44,7 @@ def resolve_targets(requested_inputs):
         clean_item = item.strip().lower().strip("#")
         if clean_item in CHANNEL_GROUPS:
             group_channel_ids.update(CHANNEL_GROUPS[clean_item])
-            logging.info(f"Resolved group '{clean_item}' to IDs: {CHANNEL_GROUPS[clean_item]}")
+            logging.debug(f"Resolved group '{clean_item}' to IDs: {CHANNEL_GROUPS[clean_item]}")
         else:
             direct_inputs.add(clean_item)
 
@@ -54,14 +54,14 @@ def resolve_targets(requested_inputs):
         try:
             channel = driver.channels.get_channel_by_name(bot_info["team_id"], target)
             channel_id = channel["id"]
-            logging.info(f"Resolved channel name '{target}' to ID: {channel_id}")
+            logging.debug(f"Resolved channel name '{target}' to ID: {channel_id}")
         except Exception:
             channel_id = target
-            logging.info(f"Could not resolve '{target}' as a name, treating as ID.")
+            logging.debug(f"Could not resolve '{target}' as a name, treating as ID.")
 
         if channel_id in WHITELIST:
             valid_ids.add(channel_id)
-            logging.info(f"Channel ID '{channel_id}' is in the whitelist.")
+            logging.debug(f"Channel ID '{channel_id}' is in the whitelist.")
         else:
             invalid_inputs.add(target)
             logging.warning(f"Channel '{target}' (resolved to {channel_id}) is not in the whitelist.")
@@ -75,7 +75,7 @@ def resolve_targets(requested_inputs):
             valid_names.append(cid)
             logging.warning(f"Could not get display name for channel ID: {cid}")
 
-    logging.info(f"Resolved valid IDs: {list(valid_ids)}")
-    logging.info(f"Resolved valid names: {valid_names}")
+    logging.debug(f"Resolved valid IDs: {list(valid_ids)}")
+    logging.debug(f"Resolved valid names: {valid_names}")
     logging.info(f"Unresolved/invalid inputs: {list(invalid_inputs)}")
     return list(valid_ids), valid_names, list(invalid_inputs)

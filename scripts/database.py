@@ -10,9 +10,9 @@ db_connection = threading.local()
 def get_db_connection():
     """Opens a new database connection if one is not already open for the current thread."""
     if not hasattr(db_connection, "conn") or db_connection.conn is None:
-        logging.info("Creating new database connection for thread.")
+        logging.debug("Creating new database connection for thread.")
         db_connection.conn = sqlite3.connect(
-            "broadcast_log.db", check_same_thread=False
+                "../broadcast_log.db", check_same_thread=False
         )
     return db_connection.conn
 
@@ -43,7 +43,7 @@ def initialize_database():
             cursor.execute("ALTER TABLE broadcasts ADD COLUMN file_ids TEXT")
 
         conn.commit()
-        logging.info("Database initialized successfully.")
+        logging.info(f"Database initialized successfully.")
     except sqlite3.Error as e:
         logging.error(f"Database error during initialization: {e}")
 
@@ -70,6 +70,6 @@ def log_broadcast(sender_name, message_content, target_channels, file_ids=None):
 def close_db_connection():
     """Closes the database connection for the current thread."""
     if hasattr(db_connection, "conn") and db_connection.conn is not None:
-        logging.info("Closing database connection for thread.")
+        logging.debug("Closing database connection for thread.")
         db_connection.conn.close()
         db_connection.conn = None

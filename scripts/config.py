@@ -14,7 +14,8 @@ SESSION_TIMEOUT_SECONDS = int(os.getenv("SESSION_TIMEOUT_SECONDS", 300))
 CLEANUP_INTERVAL_SECONDS = int(os.getenv("CLEANUP_INTERVAL_SECONDS", 60))
 
 # Logging
-DEBUG_LEVEL = os.getenv("DEBUG_LEVEL", "INFO")
+LOGGING_LEVEL = os.getenv("LOGGING_LEVEL", "DEBUG")
+CONSOLE_LOGGING_LEVEL = os.getenv("CONSOLE_LOGGING_LEVEL", "WARNING")
 LOG_FILE = os.getenv("LOG_FILE", "logs/bot.log")
 
 
@@ -50,7 +51,7 @@ HELP_MESSAGE: str = (
 
 def _logging_setup():
     if not os.path.exists(LOG_FILE):
-        os.makedirs(os.path.dirname(LOG_FILE))
+        os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
 
     # --- Logging Setup ---
     log_file = LOG_FILE
@@ -59,17 +60,17 @@ def _logging_setup():
 
     # Get the root logger
     logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
+    logger.setLevel(LOGGING_LEVEL)
 
     # Create a rotating file handler
     file_handler = RotatingFileHandler(
     log_file, maxBytes=max_log_size, backupCount=backup_count
     )
-    file_handler.setLevel(logging.INFO)
+    file_handler.setLevel(LOGGING_LEVEL)
 
     # Create a console handler
     console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.INFO)
+    console_handler.setLevel(CONSOLE_LOGGING_LEVEL)
 
     # Create a formatter and set it for both handlers
     formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
@@ -81,3 +82,4 @@ def _logging_setup():
     logger.addHandler(console_handler)
 
 _logging_setup()
+logging.critical("config setup finished")
