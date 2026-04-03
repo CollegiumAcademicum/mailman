@@ -3,10 +3,7 @@ import json
 import logging
 import threading
 import os
-from scripts.config import BASE_DIR
-
-# Database file path
-DB_PATH = BASE_DIR / "broadcast_log.db"
+from scripts.config import DB_PATH
 
 # Use a thread-local connection to ensure thread safety
 db_connection = threading.local()
