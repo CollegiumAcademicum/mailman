@@ -1,3 +1,7 @@
+from dotenv import load_dotenv
+
+load_dotenv("tests/test.env")
+
 import asyncio
 import json
 import unittest
