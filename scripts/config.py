@@ -7,12 +7,18 @@ from logging.handlers import RotatingFileHandler
 
 load_dotenv()
 
-MATTERMOST_URL = os.getenv("MATTERMOST_URL")
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-TEAM_NAME = os.getenv("TEAM_NAME")
+# These Environment Variables MUST be set.
+# the Code will fail if they are not set.
+# For more info --> README.md
+MATTERMOST_URL = os.environ["MATTERMOST_URL"]
+BOT_TOKEN = os.environ["BOT_TOKEN"]
+TEAM_NAME = os.environ["TEAM_NAME"]
+
+
+# These Env Variables are optional:
+# Sessions
 SESSION_TIMEOUT_SECONDS = int(os.getenv("SESSION_TIMEOUT_SECONDS", 300))
 CLEANUP_INTERVAL_SECONDS = int(os.getenv("CLEANUP_INTERVAL_SECONDS", 60))
-
 # Logging
 LOGGING_LEVEL = os.getenv("LOGGING_LEVEL", "DEBUG")
 CONSOLE_LOGGING_LEVEL = os.getenv("CONSOLE_LOGGING_LEVEL", "WARNING")
