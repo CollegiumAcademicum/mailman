@@ -12,7 +12,7 @@ from scripts.mattermost import driver, initialize_driver
 from scripts.patches import apply_ssl_patch
 from scripts.state import bot_info, known_users, sessions
 
-
+#TODO add standard broadcast channel every broadcast the bot emits gets send to, too
 
 # --- Main WebSocket Event Handler ---
 
