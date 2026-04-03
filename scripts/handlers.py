@@ -29,7 +29,8 @@ def handle_id_lookup(channel_name, dm_channel_id):
 
 def handle_channels_command(dm_channel_id):
     logging.info("Handling !channels command.")
-    lines = []
+    lines = ["| display_name | name  | ID | team_name |",
+             "| :------------ |:---------------| :-----| :-----|"]
     try:
         mm_teams = driver.teams.get_user_teams("me")
         logging.debug(f"Retrieved {len(mm_teams)} teams for bot")
@@ -45,7 +46,7 @@ def handle_channels_command(dm_channel_id):
                     )
 
                     lines.append(
-                        f"- `{channel['display_name']}` ({channel['name']}) | ID: `{channel['id']}` Team name: {team_name} \n "
+                        f"| `{channel['display_name']}` | {channel['name']} | `{channel['id']}` | {team_name} | "
                     )
     except Exception as e:
         logging.error(f"Error fetching channels: {e}")
