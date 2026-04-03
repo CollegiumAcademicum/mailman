@@ -75,7 +75,7 @@ class TestBot(unittest.TestCase):
         mock_driver.teams.get_team.return_value = {"display_name": "Team 1"}
         message = self.create_message("!channels")
         asyncio.run(message_handler(message))
-        expected_message = "- `Channel 1` (channel-1) | ID: `channel_id_1` Team name: Team 1 \n "
+        expected_message = "| display_name | name  | ID | team_name |\n| :------------ |:---------------| :-----| :-----|\n| `Channel 1` | channel-1 | `channel_id_1` | Team 1 | "
         mock_driver.posts.create_post.assert_called_with(
             {
                 "channel_id": "dm_channel_id_1",
