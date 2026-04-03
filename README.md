@@ -23,11 +23,43 @@ LOG_FILE=logs/bot.log
 ```
 
 ## Installation
-## local / dev
+
+### As a GitHub Submodule
+
+To use this bot in another project:
+1. Add it as a submodule: `git submodule add https://github.com/CollegiumAcademicum/mailman.git`
+2. Ensure you have the `.env` and `channels.json` files in the `mailman` directory.
+3. Import and run it from your parent project:
+```python
+import sys
+from pathlib import Path
+
+# Add submodule to sys.path
+submodule_path = Path("./mailman").resolve()
+sys.path.append(str(submodule_path))
+
+from main import main
+if __name__ == "__main__":
+    main()
 ```
+
+### Local / Dev
+```bash
 pip install uv
 uv run main.py
 ```
+
+### Running Tests
+To run the unit tests, use `pytest`:
+```bash
+uv run pytest
+```
+Alternatively, if not using `uv`:
+```bash
+pip install pytest
+pytest
+```
+
 ## Podman
 ```
 git clone <repo>
