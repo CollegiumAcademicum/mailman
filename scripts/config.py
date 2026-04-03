@@ -17,6 +17,8 @@ TEAM_NAME = os.environ["TEAM_NAME"]
 
 
 # These Env Variables are optional:
+# Bot log channel (if set, a metadata-only audit post is sent there after each broadcast)
+BOT_LOG_CHANNEL_ID = os.getenv("BOT_LOG_CHANNEL_ID", "")
 # Sessions
 SESSION_TIMEOUT_SECONDS = int(os.getenv("SESSION_TIMEOUT_SECONDS", 300))
 CLEANUP_INTERVAL_SECONDS = int(os.getenv("CLEANUP_INTERVAL_SECONDS", 60))

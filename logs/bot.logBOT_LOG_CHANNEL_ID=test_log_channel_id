@@ -1,0 +1,111 @@
+2026-04-03 18:06:10,211 - CRITICAL - config setup finished
+2026-04-03 18:06:10,277 - CRITICAL - config setup finished
+2026-04-03 18:06:10,277 - CRITICAL - config setup finished
+2026-04-03 18:06:10,280 - INFO - Processing message from testuser (ID: user_id_1).
+2026-04-03 18:06:10,280 - INFO - Processing message from testuser (ID: user_id_1).
+2026-04-03 18:06:10,280 - INFO - User testuser is adding a group.
+2026-04-03 18:06:10,280 - INFO - User testuser is adding a group.
+2026-04-03 18:06:10,280 - INFO - Handling add visible group.
+2026-04-03 18:06:10,280 - INFO - Handling add visible group.
+2026-04-03 18:06:10,280 - INFO - Validating channels for group new_group: ['id1']
+2026-04-03 18:06:10,280 - INFO - Validating channels for group new_group: ['id1']
+2026-04-03 18:06:10,280 - INFO - Updated groups in memory.
+2026-04-03 18:06:10,280 - INFO - Updated groups in memory.
+2026-04-03 18:06:10,281 - INFO - Written updated groups to channels.json
+2026-04-03 18:06:10,281 - INFO - Written updated groups to channels.json
+2026-04-03 18:06:10,283 - INFO - Processing message from testuser (ID: user_id_1).
+2026-04-03 18:06:10,283 - INFO - Processing message from testuser (ID: user_id_1).
+2026-04-03 18:06:10,283 - INFO - User testuser requested channel list.
+2026-04-03 18:06:10,283 - INFO - User testuser requested channel list.
+2026-04-03 18:06:10,283 - INFO - Handling !channels command.
+2026-04-03 18:06:10,283 - INFO - Handling !channels command.
+2026-04-03 18:06:10,285 - INFO - Processing message from testuser (ID: user_id_1).
+2026-04-03 18:06:10,285 - INFO - Processing message from testuser (ID: user_id_1).
+2026-04-03 18:06:10,285 - INFO - Handling confirmation for user testuser.
+2026-04-03 18:06:10,285 - INFO - Handling confirmation for user testuser.
+2026-04-03 18:06:10,285 - INFO - Handling confirmation from testuser: no
+2026-04-03 18:06:10,285 - INFO - Handling confirmation from testuser: no
+2026-04-03 18:06:10,285 - INFO - User testuser canceled broadcast.
+2026-04-03 18:06:10,285 - INFO - User testuser canceled broadcast.
+2026-04-03 18:06:10,286 - INFO - Session for user user_id_1 deleted.
+2026-04-03 18:06:10,286 - INFO - Session for user user_id_1 deleted.
+2026-04-03 18:06:10,287 - INFO - Processing message from testuser (ID: user_id_1).
+2026-04-03 18:06:10,287 - INFO - Processing message from testuser (ID: user_id_1).
+2026-04-03 18:06:10,288 - INFO - Creating new session for user testuser.
+2026-04-03 18:06:10,288 - INFO - Creating new session for user testuser.
+2026-04-03 18:06:10,288 - INFO - Handling new session for user: user_id_1
+2026-04-03 18:06:10,288 - INFO - Handling new session for user: user_id_1
+2026-04-03 18:06:10,288 - INFO - Processing message from testuser (ID: user_id_1).
+2026-04-03 18:06:10,288 - INFO - Processing message from testuser (ID: user_id_1).
+2026-04-03 18:06:10,289 - INFO - Handling channel selection for user testuser.
+2026-04-03 18:06:10,289 - INFO - Handling channel selection for user testuser.
+2026-04-03 18:06:10,289 - INFO - Handling channel selection: target_name_1
+2026-04-03 18:06:10,289 - INFO - Handling channel selection: target_name_1
+2026-04-03 18:06:10,289 - INFO - Channels selected for broadcast: ['target_name_1']
+2026-04-03 18:06:10,289 - INFO - Channels selected for broadcast: ['target_name_1']
+2026-04-03 18:06:10,289 - INFO - Processing message from testuser (ID: user_id_1).
+2026-04-03 18:06:10,289 - INFO - Processing message from testuser (ID: user_id_1).
+2026-04-03 18:06:10,289 - INFO - Handling confirmation for user testuser.
+2026-04-03 18:06:10,289 - INFO - Handling confirmation for user testuser.
+2026-04-03 18:06:10,289 - INFO - Handling confirmation from testuser: yes
+2026-04-03 18:06:10,289 - INFO - Handling confirmation from testuser: yes
+2026-04-03 18:06:10,289 - INFO - User testuser confirmed broadcast.
+2026-04-03 18:06:10,289 - INFO - User testuser confirmed broadcast.
+2026-04-03 18:06:10,289 - INFO - Original file IDs: []
+2026-04-03 18:06:10,289 - INFO - Original file IDs: []
+2026-04-03 18:06:10,289 - INFO - Files to upload: []
+2026-04-03 18:06:10,289 - INFO - Files to upload: []
+2026-04-03 18:06:10,289 - INFO - Posted message to channel target_id_1
+2026-04-03 18:06:10,289 - INFO - Posted message to channel target_id_1
+2026-04-03 18:06:10,290 - INFO - Session for user user_id_1 deleted.
+2026-04-03 18:06:10,290 - INFO - Session for user user_id_1 deleted.
+2026-04-03 18:06:10,307 - INFO - Processing message from testuser (ID: user_id_1).
+2026-04-03 18:06:10,307 - INFO - Processing message from testuser (ID: user_id_1).
+2026-04-03 18:06:10,307 - INFO - Handling confirmation for user testuser.
+2026-04-03 18:06:10,307 - INFO - Handling confirmation for user testuser.
+2026-04-03 18:06:10,307 - INFO - Handling confirmation from testuser: yes
+2026-04-03 18:06:10,307 - INFO - Handling confirmation from testuser: yes
+2026-04-03 18:06:10,307 - INFO - User testuser confirmed broadcast.
+2026-04-03 18:06:10,307 - INFO - User testuser confirmed broadcast.
+2026-04-03 18:06:10,307 - INFO - Original file IDs: ['file_id_1']
+2026-04-03 18:06:10,307 - INFO - Original file IDs: ['file_id_1']
+2026-04-03 18:06:10,307 - INFO - Files to upload: ['test_file.txt']
+2026-04-03 18:06:10,307 - INFO - Files to upload: ['test_file.txt']
+2026-04-03 18:06:10,307 - INFO - File uploaded successfully: {'file_infos': [{'id': 'new_file_id'}]}
+2026-04-03 18:06:10,307 - INFO - File uploaded successfully: {'file_infos': [{'id': 'new_file_id'}]}
+2026-04-03 18:06:10,308 - INFO - Posted message to channel channel_id_1
+2026-04-03 18:06:10,308 - INFO - Posted message to channel channel_id_1
+2026-04-03 18:06:10,308 - ERROR - Failed to log broadcast to database: no such table: broadcasts
+2026-04-03 18:06:10,308 - ERROR - Failed to log broadcast to database: no such table: broadcasts
+2026-04-03 18:06:10,308 - INFO - Session for user user_id_1 deleted.
+2026-04-03 18:06:10,308 - INFO - Session for user user_id_1 deleted.
+2026-04-03 18:06:10,309 - INFO - Processing message from testuser (ID: user_id_1).
+2026-04-03 18:06:10,309 - INFO - Processing message from testuser (ID: user_id_1).
+2026-04-03 18:06:10,310 - INFO - User testuser requested help.
+2026-04-03 18:06:10,310 - INFO - User testuser requested help.
+2026-04-03 18:06:10,311 - INFO - Processing message from testuser (ID: user_id_1).
+2026-04-03 18:06:10,311 - INFO - Processing message from testuser (ID: user_id_1).
+2026-04-03 18:06:10,311 - INFO - User testuser requested ID for channel 'test-channel'.
+2026-04-03 18:06:10,311 - INFO - User testuser requested ID for channel 'test-channel'.
+2026-04-03 18:06:10,311 - INFO - Handling ID lookup for channel: test-channel
+2026-04-03 18:06:10,311 - INFO - Handling ID lookup for channel: test-channel
+2026-04-03 18:06:10,311 - INFO - Found channel ID channel_id_found for name test-channel
+2026-04-03 18:06:10,311 - INFO - Found channel ID channel_id_found for name test-channel
+2026-04-03 18:06:10,313 - INFO - Processing message from testuser (ID: user_id_1).
+2026-04-03 18:06:10,313 - INFO - Processing message from testuser (ID: user_id_1).
+2026-04-03 18:06:10,313 - INFO - Handling channel selection for user testuser.
+2026-04-03 18:06:10,313 - INFO - Handling channel selection for user testuser.
+2026-04-03 18:06:10,313 - INFO - Handling channel selection: invalid1, invalid2
+2026-04-03 18:06:10,313 - INFO - Handling channel selection: invalid1, invalid2
+2026-04-03 18:06:10,313 - WARNING - No valid channels found for input: invalid1, invalid2
+2026-04-03 18:06:10,313 - WARNING - No valid channels found for input: invalid1, invalid2
+2026-04-03 18:06:10,314 - INFO - Processing message from testuser (ID: user_id_1).
+2026-04-03 18:06:10,314 - INFO - Processing message from testuser (ID: user_id_1).
+2026-04-03 18:06:10,315 - WARNING - User testuser used !id without a channel name.
+2026-04-03 18:06:10,315 - WARNING - User testuser used !id without a channel name.
+2026-04-03 18:06:10,316 - INFO - Processing message from testuser (ID: new_user).
+2026-04-03 18:06:10,316 - INFO - Processing message from testuser (ID: new_user).
+2026-04-03 18:06:10,316 - INFO - New user detected: testuser (ID: new_user).
+2026-04-03 18:06:10,316 - INFO - New user detected: testuser (ID: new_user).
+2026-04-03 18:06:10,316 - INFO - Handling new user: new_user
+2026-04-03 18:06:10,316 - INFO - Handling new user: new_user

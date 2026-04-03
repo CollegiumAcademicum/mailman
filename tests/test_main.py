@@ -7,6 +7,7 @@ import json
 import unittest
 from unittest.mock import MagicMock, mock_open, patch
 
+import scripts.config as config
 from main import message_handler
 from scripts.state import known_users, sessions
 
@@ -170,7 +171,7 @@ class TestBot(unittest.TestCase):
         )
         self.assertTrue(
             any(
-                call.args[0].get("channel_id") == "d7up7w3rd7bmmcfrkrj4ujk5ec"
+                call.args[0].get("channel_id") == config.BOT_LOG_CHANNEL_ID
                 and "Sender *testuser* sent a broadcast" in call.args[0].get("message", "")
                 for call in mock_driver.posts.create_post.call_args_list
             )

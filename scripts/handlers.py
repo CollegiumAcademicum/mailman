@@ -3,6 +3,7 @@ import logging
 import time
 
 from scripts.config import (
+    BOT_LOG_CHANNEL_ID,
     CHANNELS_JSON_PATH,
     PRIVATE_CHANNEL_GROUPS,
     VISIBLE_CHANNEL_GROUPS,
@@ -199,7 +200,7 @@ def handle_confirmation(user_id, session, text, sender_name, dm_channel_id):
             except Exception as e:
                 logging.error(f"Failed to fetch file {original_id}: {e}")
         logging.info(f"Files to upload: {list(files.keys())}")
-        file_ids = []
+        all_file_ids = []
         for channel_id in session["target_ids"]:
             file_ids = []
             # upload file to channel:
@@ -212,6 +213,7 @@ def handle_confirmation(user_id, session, text, sender_name, dm_channel_id):
                     file_ids.append(file_info["file_infos"][0]["id"])
                 except Exception as e:
                     logging.error(f"Failed to upload file to {channel_id}: {e}")
+            all_file_ids.extend(file_ids)
             try:
                 post_options: dict[str, str | list[str]] = {
                     "channel_id": channel_id,
@@ -229,7 +231,7 @@ def handle_confirmation(user_id, session, text, sender_name, dm_channel_id):
             sender_name=sender_name,
             message_content=session["message"],
             target_channels=session["valid_names"],
-            file_ids=file_ids,
+            file_ids=all_file_ids,
         )
 
         # Send User confirmation Message
@@ -243,18 +245,19 @@ def handle_confirmation(user_id, session, text, sender_name, dm_channel_id):
             }
         )
 
-        # Send Message in Mattermost bot Log
-        driver.posts.create_post(
-            {
-                "channel_id": "d7up7w3rd7bmmcfrkrj4ujk5ec",
-                "message": (
-                    f"Sender *{sender_name}* sent a broadcast. "
-                    f"Timestamp (UTC): {time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())}. "
-                    f"Target channel count: {len(session.get('valid_names', []))}. "
-                    f"Attached file count: {len(file_ids)}."
-                ),
-            }
-        )
+        # Send metadata-only audit post to the configured bot log channel (if set)
+        if BOT_LOG_CHANNEL_ID:
+            driver.posts.create_post(
+                {
+                    "channel_id": BOT_LOG_CHANNEL_ID,
+                    "message": (
+                        f"Sender *{sender_name}* sent a broadcast. "
+                        f"Timestamp (UTC): {time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())}. "
+                        f"Target channel count: {len(session.get('valid_names', []))}. "
+                        f"Attached file count: {len(all_file_ids)}."
+                    ),
+                }
+            )
 
     elif text.lower() == "no":
         logging.info(f"User {sender_name} canceled broadcast.")
