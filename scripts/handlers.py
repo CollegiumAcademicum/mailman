@@ -224,6 +224,7 @@ def handle_confirmation(user_id, session, text, sender_name, dm_channel_id):
             except Exception as e:
                 logging.error(f"Failed to post to {channel_id}: {e}")
 
+        # Log the broadcast to DB
         log_broadcast(
             sender_name=sender_name,
             message_content=session["message"],
@@ -231,6 +232,7 @@ def handle_confirmation(user_id, session, text, sender_name, dm_channel_id):
             file_ids=file_ids,
         )
 
+        # Send User confirmation Message
         driver.posts.create_post(
             {
                 "channel_id": dm_channel_id,
@@ -238,6 +240,14 @@ def handle_confirmation(user_id, session, text, sender_name, dm_channel_id):
                 "Thank you for using the Broadcast Bot!\n\n\n"
                 "**If You want to send another Broadcast, SEND THE MESSAGE AND/OR ATTACH FILES NOW:**\n"
                 "If not, just do nothing :feuervoigl:",
+            }
+        )
+
+        # Send Message in Mattermost bot Log
+        driver.posts.create_post(
+            {
+                "channel_id": "d7up7w3rd7bmmcfrkrj4ujk5ec",
+                "message": f"Sender *{sender_name}* sent a broadcast to channels: \n {session['valid_names']} \n with message:  \n  \n{session['message']}  \n  \n  \nand files: {file_ids}",
             }
         )
 
