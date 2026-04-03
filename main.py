@@ -5,12 +5,12 @@ import logging
 import threading
 import time
 
-from scripts import handlers as h
-import scripts.config as config
-from scripts.database import close_db_connection, initialize_database
-from scripts.mattermost import driver, initialize_driver
-from scripts.patches import apply_ssl_patch
-from scripts.state import bot_info, known_users, sessions
+from .scripts import handlers as h
+from .scripts import config as config
+from .scripts.database import close_db_connection, initialize_database
+from .scripts.mattermost import driver, initialize_driver
+from .scripts.patches import apply_ssl_patch
+from .scripts.state import bot_info, known_users, sessions
 
 #TODO add standard broadcast channel every broadcast the bot emits gets send to, too
 
