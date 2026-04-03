@@ -1,4 +1,5 @@
-if __name__ == "__main__":
+
+if __name__ == "__main__":  # load the .env file with all necessary credentials when run as main script
     from dotenv import load_dotenv
     load_dotenv(".env")
 
@@ -9,12 +10,21 @@ import logging
 import threading
 import time
 
-from scripts import handlers as h
-import scripts.config as config
-from scripts.database import close_db_connection, initialize_database
-from scripts.mattermost import driver, initialize_driver
-from scripts.patches import apply_ssl_patch
-from scripts.state import bot_info, known_users, sessions
+try:
+    # CI tests import `main` as a top-level module.
+    from scripts import handlers as h
+    import scripts.config as config
+    from scripts.database import close_db_connection, initialize_database
+    from scripts.mattermost import driver, initialize_driver
+    from scripts.patches import apply_ssl_patch
+    from scripts.state import bot_info, known_users, sessions
+except ImportError:  # pragma: no cover - fallback for package-style execution
+    from .scripts import handlers as h
+    from .scripts import config
+    from .scripts.database import close_db_connection, initialize_database
+    from .scripts.mattermost import driver, initialize_driver
+    from .scripts.patches import apply_ssl_patch
+    from .scripts.state import bot_info, known_users, sessions
 
 #TODO add standard broadcast channel every broadcast the bot emits gets send to, too
 
