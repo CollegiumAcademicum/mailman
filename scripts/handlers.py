@@ -2,7 +2,12 @@ import json
 import logging
 import time
 
-from scripts.config import PRIVATE_CHANNEL_GROUPS, VISIBLE_CHANNEL_GROUPS, WHITELIST
+from scripts.config import (
+    CHANNELS_JSON_PATH,
+    PRIVATE_CHANNEL_GROUPS,
+    VISIBLE_CHANNEL_GROUPS,
+    WHITELIST,
+)
 from scripts.database import log_broadcast
 from scripts.mattermost import driver, resolve_targets
 from scripts.state import bot_info, known_users, sessions
@@ -305,12 +310,12 @@ def handle_add_group(text, dm_channel_id, private=False):
             targeted_groups.update(new_groups_dict)
             logging.info("Updated groups in memory.")
 
-            with open("../channels.json", "r") as f:
+            with open(CHANNELS_JSON_PATH, "r") as f:
                 data = json.load(f)
             logging.debug("Loaded channels.json")
 
             data[group] = targeted_groups
-            with open("../channels.json", "w") as f:
+            with open(CHANNELS_JSON_PATH, "w") as f:
                 json.dump(data, f, indent=4)
 
             logging.info("Written updated groups to channels.json")

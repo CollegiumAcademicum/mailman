@@ -1,11 +1,15 @@
 import os
 import json
+from pathlib import Path
 from dotenv import load_dotenv
 import logging
 from logging.handlers import RotatingFileHandler
 
 
-load_dotenv()
+# Base directory for the project
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+load_dotenv(BASE_DIR / ".env")
 
 # These Environment Variables MUST be set.
 # the Code will fail if they are not set.
@@ -22,12 +26,13 @@ CLEANUP_INTERVAL_SECONDS = int(os.getenv("CLEANUP_INTERVAL_SECONDS", 60))
 # Logging
 LOGGING_LEVEL = os.getenv("LOGGING_LEVEL", "DEBUG")
 CONSOLE_LOGGING_LEVEL = os.getenv("CONSOLE_LOGGING_LEVEL", "WARNING")
-LOG_FILE = os.getenv("LOG_FILE", "logs/bot.log")
+LOG_FILE = os.getenv("LOG_FILE", str(BASE_DIR / "logs" / "bot.log"))
 
 
 
 # Load channel definitions
-with open("channels.json", "r") as f:
+CHANNELS_JSON_PATH = BASE_DIR / "channels.json"
+with open(CHANNELS_JSON_PATH, "r") as f:
     channel_data = json.load(f)
 
 # Public groups to be shown to the user

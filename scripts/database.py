@@ -3,6 +3,10 @@ import json
 import logging
 import threading
 import os
+from scripts.config import BASE_DIR
+
+# Database file path
+DB_PATH = BASE_DIR / "broadcast_log.db"
 
 # Use a thread-local connection to ensure thread safety
 db_connection = threading.local()
@@ -13,7 +17,7 @@ def get_db_connection():
     if not hasattr(db_connection, "conn") or db_connection.conn is None:
         logging.debug("Creating new database connection for thread.")
         db_connection.conn = sqlite3.connect(
-                "broadcast_log.db", check_same_thread=False
+                str(DB_PATH), check_same_thread=False
         )
     return db_connection.conn
 
@@ -61,7 +65,7 @@ def initialize_database():
             cursor.execute("ALTER TABLE broadcasts ADD COLUMN file_ids TEXT")
 
         conn.commit()
-        if os.path.exists("broadcast_log.db"):
+        if DB_PATH.exists():
             logging.info(f"Database initialized successfully.")
         else:
             logging.warning("Database initialization failed.")
