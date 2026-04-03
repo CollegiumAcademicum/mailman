@@ -20,6 +20,9 @@ CLEANUP_INTERVAL_SECONDS=60
 LOGGING_LEVEL=INFO
 CONSOLE_LOGGING_LEVEL=WARNING
 LOG_FILE=logs/bot.log
+
+CHANNELS_JSON_PATH=channels.json
+DB_PATH=broadcast_log.db
 ```
 
 ## Installation

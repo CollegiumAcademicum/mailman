@@ -1,6 +1,12 @@
+from dotenv import load_dotenv
+
+load_dotenv("tests/test.env")
+
+
 import unittest
 from unittest.mock import MagicMock, patch
 from scripts.mattermost import resolve_targets
+
 
 class TestMattermost(unittest.TestCase):
 
