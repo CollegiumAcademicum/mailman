@@ -1,76 +1,169 @@
 # mm_mailman
-This is a simple mattermost Bot that relays messages to channels
 
+A Mattermost bot that relays messages to multiple channels via a guided two-step broadcast wizard. Users interact with the bot exclusively via direct messages.
 
 [![Automatic Dependency Submission](https://github.com/CollegiumAcademicum/mailman/actions/workflows/dependency-graph/auto-submission/badge.svg)](https://github.com/CollegiumAcademicum/mailman/actions/workflows/dependency-graph/auto-submission)
 [![CodeQL](https://github.com/CollegiumAcademicum/mailman/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/CollegiumAcademicum/mailman/actions/workflows/github-code-scanning/codeql)
 [![Python Unit Tests](https://github.com/CollegiumAcademicum/mailman/actions/workflows/tests.yml/badge.svg)](https://github.com/CollegiumAcademicum/mailman/actions/workflows/tests.yml)
-## Example .env file:
-Must have the following variables:
+
+---
+
+## Architecture
+
+The bot is built on [mmbot_framework](../mmbot_framework/), a shared library that handles the WebSocket lifecycle, session management, middleware, and command routing. `postbot` adds only the broadcast-relay logic on top.
+
+```
+postbot/
+  main.py        # Entry point: load config, build bot, run
+  bot.py         # PostBot(BaseBot) — all command handlers and broadcast wizard
+  config.py      # PostBotConfig(BotConfig) — env var loading and validation
+  database.py    # SQLite broadcast log
+  patches.py     # SSL workaround
+  channels.json  # Channel group definitions (visible groups, private groups, whitelist)
+```
+
+**Message flow:**
+
+```
+Mattermost WebSocket event
+  → IgnoreSelfMiddleware     (drop own messages)
+  → DMOnlyMiddleware         (drop non-DM messages)
+  → CommandDispatcher        (route to handler by trigger prefix)
+  → handler / broadcast wizard (PostBot.on_message)
+```
+
+---
+
+## Configuration
+
+Create a `.env` file in the `postbot/` directory:
+
 ```dotenv
+# Required
 MATTERMOST_URL=mattermost.yourdomain.com
 BOT_TOKEN=your_bot_access_token
 TEAM_NAME=your-team-name
-```
-Following variables have standard values if not set:
-```dotenv
-SESSION_TIMEOUT_SECONDS=300
-CLEANUP_INTERVAL_SECONDS=60
 
-LOGGING_LEVEL=INFO
-CONSOLE_LOGGING_LEVEL=WARNING
+# Optional — shown with their defaults
+SESSION_TTL_SECONDS=300
+SESSION_CLEANUP_INTERVAL_SECONDS=60
+
+# Logging
+LOG_LEVEL=INFO                  # File log level
+CONSOLE_LOGGING_LEVEL=WARNING   # Console (stdout) log level — set to INFO to see startup messages
 LOG_FILE=logs/bot.log
 
+# Postbot-specific
+BOT_LOG_CHANNEL_ID=             # Channel ID for broadcast audit messages (empty = disabled)
 CHANNELS_JSON_PATH=channels.json
 DB_PATH=broadcast_log.db
 ```
 
-## Installation
+> **Tip:** Set `CONSOLE_LOGGING_LEVEL=INFO` to see WebSocket connection and startup messages in the terminal.
 
-### As a GitHub Submodule
+---
 
-To use this bot in another project:
-1. Add it as a submodule: `git submodule add https://github.com/CollegiumAcademicum/mailman.git`
-2. Ensure you have the `.env` and `channels.json` files in the `mailman` directory.
-3. Import and run it from your parent project:
-```python
-import sys
-from pathlib import Path
+## channels.json
 
-# Add submodule to sys.path
-submodule_path = Path("./mailman").resolve()
-sys.path.append(str(submodule_path))
+Defines the channel groups the bot can broadcast to. Loaded at startup and extendable at runtime via `!add_group` / `!add_private_group`.
 
-from main import main
-if __name__ == "__main__":
-    main()
+```json
+{
+  "groups": {
+    "Group Name": ["channel_id_1", "channel_id_2"]
+  },
+  "private_groups": {
+    "Private Group Name": ["channel_id_1"]
+  },
+  "whitelist": ["channel_id_allowed_for_cherry_pick"]
+}
 ```
 
+- **groups** — visible to all users via `!get_groups`
+- **private_groups** — visible only via `!get_private_groups`
+- **whitelist** — channel IDs that may be targeted individually by name or ID, outside of groups
+
+---
+
+## Installation
+
 ### Local / Dev
+
+Requires Python 3.14+ and [`uv`](https://github.com/astral-sh/uv).
+
 ```bash
-pip install uv
+cd postbot
+uv sync
+# create and fill in .env (see Configuration section above)
 uv run main.py
 ```
 
 ### Running Tests
-To run the unit tests, use `pytest`:
+
 ```bash
-uv run pytest
+cd postbot
+uv run pytest -v
 ```
-Alternatively, if not using `uv`:
+
+### Container (Podman / Docker)
+
 ```bash
-pip install pytest
-pytest
+cd postbot
+podman build -f Containerfile -t mailman-bot .
+podman run --env-file .env -v ./channels.json:/app/channels.json:ro mailman-bot
 ```
 
-## Podman
+---
+
+## Bot Commands
+
+All interaction happens via **direct message** to the bot. Messages in channels or group chats are ignored.
+
+| Command | Description |
+|---|---|
+| `!help` / `help` / `--help` / `man` | Show usage instructions |
+| `!channels` | List all channels the bot has access to in the current team |
+| `!id <channel name>` | Look up a channel's ID by name |
+| `!get_groups` | List all visible channel groups |
+| `!get_private_groups` | List all private channel groups |
+| `!add_group <JSON>` | Add one or more public groups at runtime |
+| `!add_private_group <JSON>` | Add one or more private groups at runtime |
+| *(any other message)* | Start the broadcast wizard |
+
+### Broadcast Wizard
+
+Sending any message that isn't a command starts a two-step broadcast:
+
+1. **Target selection** — the bot asks which channels or groups to send to. Accepted formats:
+   - Group names (from `!get_groups` / `!get_private_groups`)
+   - Individual channel names (must be on the whitelist)
+   - Channel IDs directly
+   - Comma-separated combinations: `Group A, Group B, some-channel-name`
+
+2. **Confirmation** — the bot shows a preview of recipients. Reply `yes` to send, `no` to cancel.
+
+Files attached to your original message are relayed alongside the text.
+
+Sessions expire after `SESSION_TTL_SECONDS` (default 5 minutes). If your session expires before you confirm, the bot sends a DM notification.
+
+### Adding Groups at Runtime
+
 ```
-git clone <repo>
-<build image from Containerfile>
-<run image>
+!add_group {"New Group Name": ["channel_id_1", "channel_id_2"]}
 ```
 
+Multiple groups in one command:
 
-## Use
-- the bot can send messages into all channels when defined through a group
-- When cherrypicked directly, the bot can only send messages into channels of its current team (TEAM_NAME in .env)
+```
+!add_group {"Floor 1": ["id_a", "id_b"], "Floor 2": ["id_c", "id_d"]}
+```
+
+Changes are persisted to `channels.json` immediately.
+
+---
+
+## Broadcast Log
+
+Every successful broadcast is recorded in a SQLite database (`broadcast_log.db` by default), including sender, timestamp, target channels, and message content.
+
+If `BOT_LOG_CHANNEL_ID` is set, a summary is also posted to that channel after each broadcast.
