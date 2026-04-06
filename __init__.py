@@ -1,1 +1,1 @@
-from . import main, scripts
+# postbot package
