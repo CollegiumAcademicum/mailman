@@ -40,8 +40,8 @@ def main() -> None:
     # Middleware is applied in registration order.
     # 1. Drop the bot's own messages first (cheapest check).
     # 2. Then drop any messages not from a DM channel.
-    bot.add_middleware(IgnoreSelfMiddleware(bot))
     bot.add_middleware(DMOnlyMiddleware())
+    bot.add_middleware(IgnoreSelfMiddleware(bot))
 
     bot.run()
 
