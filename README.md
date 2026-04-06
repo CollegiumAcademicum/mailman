@@ -40,8 +40,8 @@ Create a `.env` file in the `postbot/` directory:
 
 ```dotenv
 # Required
-MATTERMOST_URL=mattermost.yourdomain.com
-BOT_TOKEN=your_bot_access_token
+URL=mattermost.yourdomain.com
+TOKEN=your_bot_access_token
 TEAM_NAME=your-team-name
 
 # Optional — shown with their defaults
@@ -50,7 +50,7 @@ SESSION_CLEANUP_INTERVAL_SECONDS=60
 
 # Logging
 LOG_LEVEL=INFO                  # File log level
-CONSOLE_LOGGING_LEVEL=WARNING   # Console (stdout) log level — set to INFO to see startup messages
+CONSOLE_LOG_LEVEL=WARNING   # Console (stdout) log level — set to INFO to see startup messages
 LOG_FILE=logs/bot.log
 
 # Postbot-specific
