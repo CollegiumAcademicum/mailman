@@ -6,12 +6,13 @@ readme = "README.md"
 authors = [
     { name = "Philipp", email = "162928651+philipp-btz@users.noreply.github.com" }
 ]
-requires-python = ">=3.12"
+requires-python = ">=3.14"
 dependencies = [
     "anyio>=4.13.0",
     "dotenv>=0.9.9",
     "fastapi>=0.135.2",
     "mattermostdriver>=7.3.2",
+    "mmbot-framework",
     "pydantic-core>=2.41.5",
     "pytest>=9.0.2",
     "python-dotenv>=1.2.2",
@@ -20,6 +21,9 @@ dependencies = [
     "ty>=0.0.24",
     "uvicorn>=0.42.0",
 ]
+
+[tool.uv.sources]
+mmbot-framework = { path = "../mmbot_framework" }
 
 [project.scripts]
 mailman-bot = "main:main"
