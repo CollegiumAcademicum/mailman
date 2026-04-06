@@ -18,6 +18,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import logging.handlers
 import time
 from pathlib import Path
 from typing import Callable
@@ -169,6 +170,44 @@ class PostBot(BaseBot):
         """Close the SQLite connection on shutdown."""
         close_db_connection()
         logger.info("Database connection closed.")
+
+    def _setup_logging(self) -> None:
+        """Configure logging with separate levels for console and file output.
+
+        Extends :meth:`~mmbot_framework.BaseBot._setup_logging` to support a
+        separate ``console_log_level`` for the stream handler, independent of
+        the file log level (``log_level``).  This allows verbose file logging
+        while keeping the console output concise.
+        """
+        file_level = getattr(logging, self.config.log_level, logging.INFO)
+        console_level = getattr(
+            logging, self.config.console_log_level, logging.WARNING
+        )
+
+        stream_handler = logging.StreamHandler()
+        stream_handler.setLevel(console_level)
+
+        handlers: list[logging.Handler] = [stream_handler]
+        if self.config.log_file:
+            file_handler = logging.handlers.RotatingFileHandler(
+                self.config.log_file,
+                maxBytes=100 * 1024 * 1024,  # 100 MB, matching original postbot
+                backupCount=5,
+            )
+            file_handler.setLevel(file_level)
+            handlers.append(file_handler)
+
+        logging.basicConfig(
+            level=min(file_level, console_level),
+            format="%(asctime)s - %(levelname)s - %(message)s",
+            handlers=handlers,
+            force=True,
+        )
+        logger.debug(
+            f"Logging configured — file_level={self.config.log_level} "
+            f"console_level={self.config.console_log_level} "
+            f"file={self.config.log_file}"
+        )
 
     # ── Session cleanup with expiry notifications ─────────────────────────────
 
@@ -442,6 +481,11 @@ class PostBot(BaseBot):
 
         Args:
             msg: The message that identified this user as new.
+
+        Note:
+            ``sender_id`` is added to ``_known_users`` *after* the welcome
+            message is posted.  If the post fails, the user is not registered
+            and will receive the welcome again on their next message.
         """
         self._post(
             msg.channel_id,
@@ -582,8 +626,8 @@ class PostBot(BaseBot):
         if text_lower == "yes":
             await self._send_broadcast(session, msg)
         elif text_lower == "no":
-            logger.info(f"User @{msg.sender_name} cancelled broadcast.")
-            self._post(msg.channel_id, "❌ **Broadcast cancelled.**")
+            logger.info(f"User @{msg.sender_name} canceled broadcast.")
+            self._post(msg.channel_id, "❌ **Broadcast canceled.**")
         else:
             logger.warning(
                 f"Invalid confirmation from @{msg.sender_name}: {msg.text!r}."
