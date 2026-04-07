@@ -63,20 +63,21 @@ DB_PATH=broadcast_log.db
 
 ---
 
-## channels.json
+## channels.toml
 
 Defines the channel groups the bot can broadcast to. Loaded at startup and extendable at runtime via `!add_group` / `!add_private_group`.
 
-```json
-{
-  "groups": {
-    "Group Name": ["channel_id_1", "channel_id_2"]
-  },
-  "private_groups": {
-    "Private Group Name": ["channel_id_1"]
-  },
-  "whitelist": ["channel_id_allowed_for_cherry_pick"]
-}
+```toml
+whitelist = [ "14d9s71is3fh3duwj9a6u9k4jr",]
+
+[groups]
+"name1" = [ "id1", "id2",]
+"name2" = [ "id3", "id4", "id5",]
+
+
+[private_groups]
+"name3" = [ "id6", "id7", "id8",]
+
 ```
 
 - **groups** — visible to all users via `!get_groups`
@@ -119,16 +120,16 @@ podman run --env-file .env -v ./channels.json:/app/channels.json:ro mailman-bot
 
 All interaction happens via **direct message** to the bot. Messages in channels or group chats are ignored.
 
-| Command | Description |
-|---|---|
+| Command                             | Description |
+|-------------------------------------|---|
 | `!help` / `help` / `--help` / `man` | Show usage instructions |
-| `!channels` | List all channels the bot has access to in the current team |
-| `!id <channel name>` | Look up a channel's ID by name |
-| `!get_groups` | List all visible channel groups |
-| `!get_private_groups` | List all private channel groups |
-| `!add_group <JSON>` | Add one or more public groups at runtime |
-| `!add_private_group <JSON>` | Add one or more private groups at runtime |
-| *(any other message)* | Start the broadcast wizard |
+| `!channels`                         | List all channels the bot has access to in the current team |
+| `!id <channel name>`                | Look up a channel's ID by name |
+| `!get_groups`                       | List all visible channel groups |
+| `!get_private_groups`               | List all private channel groups |
+| `!add_group <TOML>`                 | Add one or more public groups at runtime |
+| `!add_private_group <TOML>`         | Add one or more private groups at runtime |
+| *(any other message)*               | Start the broadcast wizard |
 
 ### Broadcast Wizard
 

@@ -32,7 +32,7 @@ class PostBotConfig(BotConfig):
     """
 
     bot_log_channel_id: str = ""
-    channels_json_path: Path = Path("channels.json")
+    channels_toml_path: Path = Path("channels.toml")
     db_path: Path = Path("broadcast_log.db")
     console_log_level: str = "WARNING"
 

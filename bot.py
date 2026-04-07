@@ -16,7 +16,7 @@ Usage::
 from __future__ import annotations
 
 import asyncio
-import json
+import toml
 import logging
 import logging.handlers
 import time
@@ -73,8 +73,8 @@ _HELP_MESSAGE = (
     "- `!channels` — list all channels the bot has access to\n"
     "- `!get_groups` — list all available groups and their channels\n"
     "- `!get_private_groups` — same as above but for private groups\n"
-    '- `!add_group <json>` — add public group(s): `{"GroupName": ["id1", "id2"]}`\n'
-    "- `!add_private_group <json>` — add private group(s): same JSON format"
+    '- `!add_group <toml>` — add public group(s): `"GroupName" = ["id1", "id2"]`\n'
+    "- `!add_private_group <toml>` — add private group(s): same toml format"
 )
 
 
@@ -844,10 +844,10 @@ class PostBot(BaseBot):
                 does not exist.
             json.JSONDecodeError: If the file contains invalid JSON.
         """
-        path: Path = self.config.channels_json_path
+        path: Path = self.config.channels_toml_path
         logger.info(f"Loading channel data from {path}.")
-        with path.open("r", encoding="utf-8") as fh:
-            data = json.load(fh)
+        with path.open("r") as fh:
+            data = toml.load(fh)
         self._visible_groups = data.get("groups", {})
         self._private_groups = data.get("private_groups", {})
         self._whitelist = set(data.get("whitelist", []))
@@ -885,8 +885,8 @@ class PostBot(BaseBot):
             return
 
         try:
-            new_groups: dict = json.loads(payload_str)
-        except json.JSONDecodeError as exc:
+            new_groups: dict = toml.loads(payload_str)
+        except toml.TomlDecodeError as exc:
             logger.error(f"Invalid JSON in {trigger} command: {exc}")
             self._post(
                 msg.channel_id,
@@ -933,12 +933,12 @@ class PostBot(BaseBot):
         target_dict.update(cleaned)
 
         # Persist to channels.json.
-        path: Path = self.config.channels_json_path
+        path: Path = self.config.channels_toml_path
         with path.open("r", encoding="utf-8") as fh:
-            data = json.load(fh)
+            data = toml.load(fh)
         data[json_key] = target_dict
         with path.open("w", encoding="utf-8") as fh:
-            json.dump(data, fh, indent=4)
+            toml.dump(data, fh)
 
         logger.info(
             f"Persisted new groups to {path}: {list(cleaned.keys())}."
