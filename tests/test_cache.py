@@ -212,3 +212,137 @@ class TestRefreshChannelsCommand:
         msg = make_msg(text="!refresh_channels")
         await bot._handle_refresh_channels(msg)
         bot.driver.teams.get_user_teams.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# Tests for cache-backed handlers
+# ---------------------------------------------------------------------------
+
+
+class TestHandleChannelsWithCache:
+    @pytest.mark.anyio
+    async def test_uses_cache_rows_no_driver_calls(self, bot, make_msg):
+        await _seed_cache(bot)
+        msg = make_msg(text="!channels")
+        await bot._handle_channels(msg)
+        bot.driver.teams.get_user_teams.assert_not_called()
+        bot.driver.channels.get_channels_for_user.assert_not_called()
+
+    @pytest.mark.anyio
+    async def test_reply_contains_all_rows(self, bot, make_msg):
+        await _seed_cache(bot)
+        msg = make_msg(text="!channels")
+        await bot._handle_channels(msg)
+        reply = _last_post(bot)
+        assert "Test Channel 1" in reply
+        assert "Test Channel 2" in reply
+
+    @pytest.mark.anyio
+    async def test_warns_when_cache_empty(self, bot, make_msg):
+        # cache not seeded — get("channels") returns None
+        msg = make_msg(text="!channels")
+        await bot._handle_channels(msg)
+        reply = _last_post(bot)
+        assert "⚠️" in reply
+
+
+class TestHandleIdWithCache:
+    @pytest.mark.anyio
+    async def test_resolves_name_from_cache(self, bot, make_msg):
+        await _seed_cache(bot)
+        msg = make_msg(text="!id test-channel-1")
+        await bot._handle_id(msg)
+        bot.driver.channels.get_channel_by_name.assert_not_called()
+        reply = _last_post(bot)
+        assert "ch_id_1" in reply
+
+    @pytest.mark.anyio
+    async def test_falls_back_to_api_on_cache_miss(self, bot, make_msg):
+        await _seed_cache(bot)
+        bot.driver.channels.get_channel_by_name.return_value = {"id": "new_id"}
+        msg = make_msg(text="!id brand-new-channel")
+        await bot._handle_id(msg)
+        bot.driver.channels.get_channel_by_name.assert_called_once()
+        reply = _last_post(bot)
+        assert "new_id" in reply
+        assert "!refresh_channels" in reply  # stale-cache notice
+
+
+class TestHandleGetGroupsWithCache:
+    @pytest.mark.anyio
+    async def test_resolves_channel_names_from_cache(self, bot, make_msg):
+        await _seed_cache(bot)
+        msg = make_msg(text="!get_groups")
+        await bot._handle_get_groups(msg)
+        bot.driver.channels.get_channel.assert_not_called()
+        reply = _last_post(bot)
+        assert "TestGroup" in reply
+
+    @pytest.mark.anyio
+    async def test_falls_back_to_api_on_cache_miss(self, bot, make_msg):
+        # cache not seeded — IDs not in cache → fallback to driver
+        bot.driver.channels.get_channel.return_value = {"name": "fallback-name"}
+        msg = make_msg(text="!get_groups")
+        await bot._handle_get_groups(msg)
+        assert bot.driver.channels.get_channel.call_count > 0
+
+
+class TestHandleGetPrivateGroupsWithCache:
+    @pytest.mark.anyio
+    async def test_resolves_channel_names_from_cache(self, bot, make_msg):
+        await _seed_cache(bot)
+        msg = make_msg(text="!get_private_groups")
+        await bot._handle_get_private_groups(msg)
+        bot.driver.channels.get_channel.assert_not_called()
+
+    @pytest.mark.anyio
+    async def test_falls_back_to_api_on_cache_miss(self, bot, make_msg):
+        bot.driver.channels.get_channel.return_value = {"name": "fallback-name"}
+        msg = make_msg(text="!get_private_groups")
+        await bot._handle_get_private_groups(msg)
+        assert bot.driver.channels.get_channel.call_count > 0
+
+
+class TestHandleNewSessionWithCache:
+    @pytest.mark.anyio
+    async def test_whitelist_display_uses_cache(self, bot, make_msg):
+        await _seed_cache(bot)
+        msg = make_msg(text="Hello world broadcast")
+        bot._known_users.add(msg.sender_id)
+        await bot._handle_new_session(msg)
+        bot.driver.channels.get_channel.assert_not_called()
+        bot.driver.teams.get_team.assert_not_called()
+        reply = _last_post(bot)
+        assert "test-channel-1" in reply or "Test Channel 1" in reply
+
+    @pytest.mark.anyio
+    async def test_whitelist_falls_back_to_api_on_cache_miss(self, bot, make_msg):
+        # cache not seeded
+        bot.driver.channels.get_channel.return_value = {
+            "name": "ch", "display_name": "Ch", "team_id": "t1"
+        }
+        bot.driver.teams.get_team.return_value = {"display_name": "T"}
+        msg = make_msg(text="Hello world broadcast")
+        bot._known_users.add(msg.sender_id)
+        await bot._handle_new_session(msg)
+        assert bot.driver.channels.get_channel.call_count > 0
+
+
+class TestResolveTargetsWithCache:
+    def test_resolves_channel_name_from_cache(self, bot):
+        asyncio.run(_seed_cache(bot))
+        valid_ids, valid_names, invalid = bot._resolve_targets({"test-channel-1"})
+        bot.driver.channels.get_channel_by_name.assert_not_called()
+        assert "ch_id_1" in valid_ids
+
+    def test_falls_back_to_api_on_name_cache_miss(self, bot):
+        asyncio.run(_seed_cache(bot))
+        bot.driver.channels.get_channel_by_name.return_value = {"id": "whitelisted_id"}
+        valid_ids, _, _ = bot._resolve_targets({"not-in-cache"})
+        bot.driver.channels.get_channel_by_name.assert_called_once()
+
+    def test_resolves_display_name_from_cache(self, bot):
+        asyncio.run(_seed_cache(bot))
+        _, valid_names, _ = bot._resolve_targets({"TestGroup"})
+        bot.driver.channels.get_channel.assert_not_called()
+        assert "Test Channel 1" in valid_names or "Test Channel 2" in valid_names

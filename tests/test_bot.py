@@ -128,20 +128,36 @@ class TestHandleId:
 
 class TestHandleChannels:
     def test_channels_returns_table(self, bot: PostBot, make_msg):
-        bot.driver.teams.get_user_teams.return_value = [{"id": "t1"}]
-        bot.driver.channels.get_channels_for_user.return_value = [
-            {
-                "display_name": "General",
-                "name": "general",
-                "id": "ch123",
-                "team_id": "t1",
-            }
-        ]
-        bot.driver.teams.get_team.return_value = {"display_name": "My Team"}
+        # Seed the cache so _handle_channels reads from it instead of the driver.
+        from mmbot_framework.core.cache import CacheManager
+        from unittest.mock import AsyncMock as _AsyncMock
+
+        cache_data = {
+            "by_id": {
+                "ch123": {
+                    "name": "general",
+                    "display_name": "General",
+                    "team_name": "My Team",
+                    "team_id": "t1",
+                }
+            },
+            "by_name": {"general": "ch123"},
+            "all_rows": ["| `General` | general | `ch123` | My Team |"],
+        }
+        loader = _AsyncMock(return_value=cache_data)
+        bot.cache.register("channels", loader, ttl=3600)
+        asyncio.run(bot.cache.refresh("channels"))
+
         asyncio.run(bot._handle_channels(make_msg(text="!channels")))
         text = _last_post(bot)
         assert "general" in text
         assert "ch123" in text
+
+    def test_channels_warns_when_cache_empty(self, bot: PostBot, make_msg):
+        # No cache seeded — should get a warning message.
+        asyncio.run(bot._handle_channels(make_msg(text="!channels")))
+        text = _last_post(bot)
+        assert "⚠️" in text
 
 
 # ---------------------------------------------------------------------------
