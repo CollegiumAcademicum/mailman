@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import asyncio
 import toml
+import json
 import logging
 import logging.handlers
 import time
@@ -570,7 +571,12 @@ class PostBot(BaseBot):
             session: The active :class:`~mmbot_framework.Session` for this user.
             msg: The message containing the comma-separated channel/group targets.
         """
-        requested = [item.strip() for item in msg.text.split(",")]
+        requested_lines = [item.strip() for item in msg.text.split("\n")]
+        logger.info(f"User @{msg.sender_name} requested channels: {requested_lines}")
+        requested = set()
+        for line in requested_lines:
+            for item in line.split(","):
+                requested.add(item.strip())
         valid_ids, valid_names, invalid_names = self._resolve_targets(requested)
 
         if not valid_ids:
@@ -758,7 +764,7 @@ class PostBot(BaseBot):
         self.driver.posts.create_post({"channel_id": channel_id, "message": text})
 
     def _resolve_targets(
-        self, inputs: list[str]
+        self, inputs: set[str]
     ) -> tuple[list[str], list[str], list[str]]:
         """Resolve user-supplied channel names, IDs, and group names to channel IDs.
 
@@ -782,6 +788,8 @@ class PostBot(BaseBot):
             - ``invalid_names``: Inputs that could not be resolved or are not
               whitelisted.
         """
+        # TODO add Channel Caching
+        # TODO add display name resolver
         all_groups: dict[str, list[str]] = {
             **self._visible_groups,
             **self._private_groups,
@@ -844,6 +852,7 @@ class PostBot(BaseBot):
                 does not exist.
             json.JSONDecodeError: If the file contains invalid JSON.
         """
+        # TODO add aliase
         path: Path = self.config.channels_toml_path
         logger.info(f"Loading channel data from {path}.")
         with path.open("r") as fh:
