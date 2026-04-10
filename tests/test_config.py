@@ -116,3 +116,18 @@ def test_load_case_insensitive_keys(tmp_path):
     assert config.url == "mm.example.com"
     assert config.token == "tok"
     assert config.team_name == "t"
+
+
+# ---------------------------------------------------------------------------
+# Channel cache TTL
+# ---------------------------------------------------------------------------
+
+
+class TestChannelCacheTTL:
+    def test_default_ttl_is_3600(self, minimal_config_kwargs):
+        config = PostBotConfig(**minimal_config_kwargs)
+        assert config.channel_cache_ttl_seconds == 3600
+
+    def test_custom_ttl_is_accepted(self, minimal_config_kwargs):
+        config = PostBotConfig(**minimal_config_kwargs, channel_cache_ttl_seconds=600)
+        assert config.channel_cache_ttl_seconds == 600

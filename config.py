@@ -29,12 +29,17 @@ class PostBotConfig(BotConfig):
         db_path: Path to the SQLite database used to log broadcasts.
         console_log_level: Log level for console (stderr) output. Independent
             of the file log level set by :attr:`~BotConfig.log_level`.
+        channel_cache_ttl_seconds: How long (in seconds) the channel cache is
+            considered fresh before the background task refreshes it.
+            Defaults to 3600 (one hour). Set via
+            ``CHANNEL_CACHE_TTL_SECONDS`` in ``.env``.
     """
 
     bot_log_channel_id: str = ""
     channels_toml_path: Path = Path("channels.toml")
     db_path: Path = Path("broadcast_log.db")
     console_log_level: str = "WARNING"
+    channel_cache_ttl_seconds: int = 3600
 
     # To add a new field, add it here e.g.
     # new_field: str = "default_value"
