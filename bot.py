@@ -133,6 +133,7 @@ class PostBot(BaseBot):
         # Same ordering rationale for !add_private_group vs !add_group.
         self._dispatcher.register("!add_private_group", self._handle_add_private_group)
         self._dispatcher.register("!add_group", self._handle_add_group)
+        self._dispatcher.register("!refresh_channels", self._handle_refresh_channels)
 
     # ── Lifecycle hooks ──────────────────────────────────────────────────────
 
@@ -166,6 +167,12 @@ class PostBot(BaseBot):
             raise
 
         self._load_channel_data()
+
+        self.cache.register(
+            "channels", self._load_channel_cache, ttl=self.config.channel_cache_ttl_seconds
+        )
+        await self.cache.refresh("channels")
+        logger.info("Channel cache pre-warmed.")
 
     async def on_stop(self) -> None:
         """Close the SQLite connection on shutdown."""
@@ -473,6 +480,22 @@ class PostBot(BaseBot):
             msg: The incoming message.
         """
         await self._add_group_impl(msg, private=True)
+
+    async def _handle_refresh_channels(self, msg: ParsedMessage) -> None:
+        """Force-reload the channel cache immediately.
+
+        Triggered by: ``!refresh_channels``
+
+        Any user can trigger this.  Useful when channels have been created,
+        renamed, or deleted since the last automatic refresh.
+
+        Args:
+            msg: The incoming message.
+        """
+        logger.info(f"User @{msg.sender_name} triggered channel cache refresh.")
+        await self.cache.refresh("channels")
+        ts = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
+        self._post(msg.channel_id, f"✅ Channel cache refreshed at **{ts} UTC**.")
 
     # ── Broadcast wizard helpers ──────────────────────────────────────────────
 
@@ -865,6 +888,52 @@ class PostBot(BaseBot):
             f"{len(self._private_groups)} private groups, "
             f"{len(self._whitelist)} whitelist entries."
         )
+
+    async def _load_channel_cache(self) -> dict:
+        """Fetch all channel data from the Mattermost API in one sweep.
+
+        Called by :attr:`~mmbot_framework.BaseBot.cache` automatically on TTL
+        expiry and on demand via ``!refresh_channels``.  Never call directly —
+        use :meth:`~mmbot_framework.core.cache.CacheManager.refresh` instead.
+
+        The returned dict has three keys:
+
+        - ``"by_id"`` — maps channel ID → info dict with ``name``,
+          ``display_name``, ``team_name``, and ``team_id``.
+        - ``"by_name"`` — maps channel system name → channel ID.
+        - ``"all_rows"`` — pre-formatted Markdown table rows for ``!channels``,
+          built here so ``!channels`` is a zero-API-call string join.
+
+        Returns:
+            Dict with keys ``"by_id"``, ``"by_name"``, ``"all_rows"``.
+        """
+        by_id: dict[str, dict] = {}
+        by_name: dict[str, str] = {}
+        all_rows: list[str] = []
+
+        teams = self.driver.teams.get_user_teams("me")
+        for team in teams:
+            team_name = team.get("display_name", "N/A")
+            channels = self.driver.channels.get_channels_for_user("me", team["id"])
+            for ch in channels:
+                if not ch.get("team_id"):
+                    continue  # skip DM / group-message channels
+                cid = ch["id"]
+                info = {
+                    "name": ch["name"],
+                    "display_name": ch["display_name"],
+                    "team_name": team_name,
+                    "team_id": ch["team_id"],
+                }
+                by_id[cid] = info
+                by_name[ch["name"]] = cid
+                all_rows.append(
+                    f"| `{ch['display_name']}` | {ch['name']} "
+                    f"| `{cid}` | {team_name} |"
+                )
+
+        logger.info(f"Channel cache loaded: {len(by_id)} channel(s).")
+        return {"by_id": by_id, "by_name": by_name, "all_rows": all_rows}
 
     async def _add_group_impl(self, msg: ParsedMessage, *, private: bool) -> None:
         """Shared implementation for !add_group and !add_private_group.
