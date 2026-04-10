@@ -58,11 +58,11 @@ _CACHE_DATA = {
 }
 
 
-def _seed_cache(bot: PostBot) -> None:
+async def _seed_cache(bot: PostBot) -> None:
     """Pre-populate bot.cache with _CACHE_DATA so handlers can read from it."""
     loader = AsyncMock(return_value=_CACHE_DATA)
     bot.cache.register("channels", loader, ttl=3600)
-    asyncio.run(bot.cache.refresh("channels"))
+    await bot.cache.refresh("channels")
 
 
 # ---------------------------------------------------------------------------

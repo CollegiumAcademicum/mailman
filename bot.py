@@ -75,7 +75,8 @@ _HELP_MESSAGE = (
     "- `!get_groups` — list all available groups and their channels\n"
     "- `!get_private_groups` — same as above but for private groups\n"
     '- `!add_group <toml>` — add public group(s): `"GroupName" = ["id1", "id2"]`\n'
-    "- `!add_private_group <toml>` — add private group(s): same toml format"
+    "- `!add_private_group <toml>` — add private group(s): same toml format\n"
+    "- `!refresh_channels` — force-reload the channel list cache"
 )
 
 
@@ -144,7 +145,8 @@ class PostBot(BaseBot):
         1. Apply the SSL patch required by the installed mattermostdriver version.
         2. Initialise the SQLite broadcast-log database.
         3. Fetch the bot's Mattermost team ID and username.
-        4. Load channel group definitions from ``channels.json``.
+        4. Load channel group definitions from the channels TOML file.
+        5. Register and pre-warm the channel cache.
         """
         apply_ssl_patch()
         initialize_database(self.config.db_path)
@@ -493,7 +495,12 @@ class PostBot(BaseBot):
             msg: The incoming message.
         """
         logger.info(f"User @{msg.sender_name} triggered channel cache refresh.")
-        await self.cache.refresh("channels")
+        try:
+            await self.cache.refresh("channels")
+        except Exception as exc:
+            logger.error(f"Channel cache refresh failed: {exc}")
+            self._post(msg.channel_id, "⚠️ Channel cache refresh failed. Please try again later.")
+            return
         ts = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
         self._post(msg.channel_id, f"✅ Channel cache refreshed at **{ts} UTC**.")
 
@@ -871,7 +878,7 @@ class PostBot(BaseBot):
         ``!add_group`` or ``!add_private_group`` mutation.
 
         Raises:
-            FileNotFoundError: If :attr:`~PostBotConfig.channels_json_path`
+            FileNotFoundError: If :attr:`~PostBotConfig.channels_toml_path`
                 does not exist.
             json.JSONDecodeError: If the file contains invalid JSON.
         """
