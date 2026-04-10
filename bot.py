@@ -415,6 +415,46 @@ class PostBot(BaseBot):
         ] + ch_cache["all_rows"]
         self._post(msg.channel_id, "\n".join(lines))
 
+    def _resolve_group_channel_names(
+        self,
+        groups: dict[str, list[str]],
+        ch_cache: dict | None,
+        context: str,
+    ) -> tuple[list[str], bool]:
+        """Return formatted group/channel lines and whether any cache miss occurred.
+
+        Args:
+            groups: mapping of group name → list of channel IDs
+            ch_cache: the "channels" cache dict, or None if not loaded
+            context: label for log messages ("group" or "private group")
+
+        Returns:
+            (lines, used_fallback) where lines is the list of formatted strings
+            and used_fallback is True if any channel was fetched from the live API.
+        """
+        lines: list[str] = []
+        used_fallback = False
+        for name, channel_ids in groups.items():
+            resolved: list[str] = []
+            for cid in channel_ids:
+                if ch_cache and cid in ch_cache["by_id"]:
+                    resolved.append(ch_cache["by_id"][cid]["name"])
+                else:
+                    logger.warning(
+                        f"Cache miss for channel {cid!r} in {context} {name!r}; "
+                        f"falling back to live API."
+                    )
+                    used_fallback = True
+                    try:
+                        resolved.append(self.driver.channels.get_channel(cid)["name"])
+                    except Exception as exc:
+                        logger.error(
+                            f"Error resolving channel {cid!r} for {context} {name!r}: {exc}"
+                        )
+                        resolved.append(f"(error: {cid})")
+            lines.append(f"**{name}:** {resolved}\n")
+        return lines, used_fallback
+
     async def _handle_get_groups(self, msg: ParsedMessage) -> None:
         """List all visible channel groups and their resolved channel names.
 
@@ -426,29 +466,16 @@ class PostBot(BaseBot):
         """
         logger.info(f"User @{msg.sender_name} requested visible groups.")
         ch_cache = self.cache.get("channels")
-        lines: list[str] = []
-        for name, channel_ids in self._visible_groups.items():
-            resolved: list[str] = []
-            for cid in channel_ids:
-                if ch_cache and cid in ch_cache["by_id"]:
-                    resolved.append(ch_cache["by_id"][cid]["name"])
-                else:
-                    logger.warning(
-                        f"Cache miss for channel {cid!r} in group {name!r}; "
-                        f"falling back to live API."
-                    )
-                    try:
-                        resolved.append(self.driver.channels.get_channel(cid)["name"])
-                    except Exception as exc:
-                        logger.error(
-                            f"Error resolving channel {cid!r} for group {name!r}: {exc}"
-                        )
-                        resolved.append(f"(error: {cid})")
-            lines.append(f"**{name}:** {resolved}\n")
-        self._post(
-            msg.channel_id,
-            "\n".join(lines) if lines else "No groups configured.",
+        lines, used_fallback = self._resolve_group_channel_names(
+            self._visible_groups, ch_cache, "group"
         )
+        reply = "\n".join(lines) if lines else "No groups configured."
+        if used_fallback:
+            reply += (
+                "\n\n⚠️ Some channel data was fetched live — "
+                "run `!refresh_channels` to update the cache."
+            )
+        self._post(msg.channel_id, reply)
 
     async def _handle_get_private_groups(self, msg: ParsedMessage) -> None:
         """List all private channel groups and their resolved channel names.
@@ -461,30 +488,16 @@ class PostBot(BaseBot):
         """
         logger.info(f"User @{msg.sender_name} requested private groups.")
         ch_cache = self.cache.get("channels")
-        lines: list[str] = []
-        for name, channel_ids in self._private_groups.items():
-            resolved: list[str] = []
-            for cid in channel_ids:
-                if ch_cache and cid in ch_cache["by_id"]:
-                    resolved.append(ch_cache["by_id"][cid]["name"])
-                else:
-                    logger.warning(
-                        f"Cache miss for channel {cid!r} in private group {name!r}; "
-                        f"falling back to live API."
-                    )
-                    try:
-                        resolved.append(self.driver.channels.get_channel(cid)["name"])
-                    except Exception as exc:
-                        logger.error(
-                            f"Error resolving channel {cid!r} for private group "
-                            f"{name!r}: {exc}"
-                        )
-                        resolved.append(f"(error: {cid})")
-            lines.append(f"**{name}:** {resolved}\n")
-        self._post(
-            msg.channel_id,
-            "\n".join(lines) if lines else "No private groups configured.",
+        lines, used_fallback = self._resolve_group_channel_names(
+            self._private_groups, ch_cache, "private group"
         )
+        reply = "\n".join(lines) if lines else "No private groups configured."
+        if used_fallback:
+            reply += (
+                "\n\n⚠️ Some channel data was fetched live — "
+                "run `!refresh_channels` to update the cache."
+            )
+        self._post(msg.channel_id, reply)
 
     async def _handle_add_group(self, msg: ParsedMessage) -> None:
         """Add one or more public channel groups from a JSON payload.
@@ -582,6 +595,7 @@ class PostBot(BaseBot):
         # Build the displayed list of whitelisted channels.
         ch_cache = self.cache.get("channels")
         allowed_channels: list[str] = []
+        used_fallback = False
         for channel_id in self._whitelist:
             if ch_cache and channel_id in ch_cache["by_id"]:
                 info = ch_cache["by_id"][channel_id]
@@ -595,6 +609,7 @@ class PostBot(BaseBot):
                     f"Cache miss for whitelisted channel {channel_id!r}; "
                     f"falling back to live API."
                 )
+                used_fallback = True
                 try:
                     info = self.driver.channels.get_channel(channel_id)
                     team_name = (
@@ -621,6 +636,12 @@ class PostBot(BaseBot):
             if msg.file_ids
             else ""
         )
+        stale_notice = (
+            "\n\n⚠️ Some channel data was fetched live — "
+            "run `!refresh_channels` to update the cache."
+            if used_fallback
+            else ""
+        )
 
         self._post(
             msg.channel_id,
@@ -629,7 +650,8 @@ class PostBot(BaseBot):
             f"it to, separated by commas.\n\n"
             f"### Available Groups:\n{group_list}"
             f"**Available Channels:**\n"
-            + "\n".join(allowed_channels),
+            + "\n".join(allowed_channels)
+            + stale_notice,
         )
 
     async def _handle_channel_selection(self, session: Session, msg: ParsedMessage) -> None:
@@ -837,7 +859,7 @@ class PostBot(BaseBot):
 
     def _resolve_targets(
         self, inputs: set[str]
-    ) -> tuple[list[str], list[str], list[str]]:
+    ) -> tuple[list[str], list[str], list[str], bool]:
         """Resolve user-supplied channel names, IDs, and group names to channel IDs.
 
         Lookup order for each non-group input:
@@ -854,7 +876,9 @@ class PostBot(BaseBot):
             inputs: Raw user inputs, typically split on commas.
 
         Returns:
-            A three-tuple ``(valid_ids, valid_names, invalid_names)``.
+            A four-tuple ``(valid_ids, valid_names, invalid_names, used_fallback)``
+            where ``used_fallback`` is True if any channel data was fetched from
+            the live API due to a cache miss.
         """
         ch_cache = self.cache.get("channels")
         all_groups: dict[str, list[str]] = {
