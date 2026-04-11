@@ -272,3 +272,66 @@ class TestHandleChannelsAliasesColumn:
         await bot._handle_channels(msg)
         reply = bot.driver.posts.create_post.call_args_list[-1][0][0]["message"]
         assert "Channel Two" in reply
+
+
+# ---------------------------------------------------------------------------
+# TestHandleAddAlias
+# ---------------------------------------------------------------------------
+
+
+class TestHandleAddAlias:
+    @pytest.fixture
+    def bot(self, tmp_path):
+        content = {
+            "whitelist": {
+                "ch-id-1": {"id": "ch_id_1", "aliases": []},
+            },
+            "groups": {
+                "MyGroup": {"channels": ["ch_id_1"], "aliases": []},
+            },
+            "private_groups": {},
+        }
+        bot = _make_bot(tmp_path, content)
+        bot._load_channel_data()
+        bot.driver = MagicMock()
+        return bot
+
+    def _last_post(self, bot) -> str:
+        return bot.driver.posts.create_post.call_args_list[-1][0][0]["message"]
+
+    @pytest.mark.anyio
+    async def test_add_alias_to_group_succeeds(self, bot, make_msg):
+        await bot._handle_add_alias(make_msg(text="!add_alias mg MyGroup"))
+        assert "mg" in bot._alias_map
+        assert bot._alias_map["mg"] == "MyGroup"
+        assert "✅" in self._last_post(bot)
+
+    @pytest.mark.anyio
+    async def test_add_alias_to_whitelist_succeeds(self, bot, make_msg):
+        await bot._handle_add_alias(make_msg(text="!add_alias c1 ch-id-1"))
+        assert "c1" in bot._alias_map
+        assert bot._alias_map["c1"] == "ch-id-1"
+
+    @pytest.mark.anyio
+    async def test_duplicate_alias_rejected(self, bot, make_msg):
+        bot._alias_map["mg"] = "MyGroup"
+        await bot._handle_add_alias(make_msg(text="!add_alias mg MyGroup"))
+        assert "❌" in self._last_post(bot)
+        assert "already mapped" in self._last_post(bot)
+
+    @pytest.mark.anyio
+    async def test_unknown_target_rejected(self, bot, make_msg):
+        await bot._handle_add_alias(make_msg(text="!add_alias x NoSuchThing"))
+        assert "❌" in self._last_post(bot)
+        assert "not found" in self._last_post(bot)
+
+    @pytest.mark.anyio
+    async def test_no_payload_shows_usage(self, bot, make_msg):
+        await bot._handle_add_alias(make_msg(text="!add_alias"))
+        assert "Usage" in self._last_post(bot)
+
+    @pytest.mark.anyio
+    async def test_alias_persisted_to_toml(self, bot, make_msg):
+        await bot._handle_add_alias(make_msg(text="!add_alias mg MyGroup"))
+        saved = toml.loads(bot.config.channels_toml_path.read_text())
+        assert "mg" in saved["groups"]["MyGroup"]["aliases"]

@@ -97,7 +97,8 @@ _HELP_MESSAGE = (
     "- `!get_private_groups` — same as above but for private groups\n"
     '- `!add_group <toml>` — add public group(s): `"GroupName" = ["id1", "id2"]`\n'
     "- `!add_private_group <toml>` — add private group(s): same toml format\n"
-    "- `!refresh_channels` — force-reload the channel list cache"
+    "- `!refresh_channels` — force-reload the channel list cache\n"
+    "- `!add_alias <alias> <target>` — add a short alias for a group or whitelisted channel"
 )
 
 
@@ -1093,6 +1094,31 @@ class PostBot(BaseBot):
                 else:
                     self._alias_map[key] = canonical
 
+    def _save_channel_data(self) -> None:
+        """Write current groups and whitelist state to ``channels.toml``.
+
+        Converts in-memory :class:`GroupEntry` and :class:`WhitelistEntry`
+        objects back to plain dicts before serialising with ``toml.dump``.
+        """
+        data = {
+            "whitelist": {
+                label: {"id": e.id, "aliases": e.aliases}
+                for label, e in self._whitelist.items()
+            },
+            "groups": {
+                name: {"channels": e.channels, "aliases": e.aliases}
+                for name, e in self._visible_groups.items()
+            },
+            "private_groups": {
+                name: {"channels": e.channels, "aliases": e.aliases}
+                for name, e in self._private_groups.items()
+            },
+        }
+        path: Path = self.config.channels_toml_path
+        with path.open("w", encoding="utf-8") as fh:
+            toml.dump(data, fh)
+        logger.debug(f"Persisted channel data to {path}.")
+
     async def _load_channel_cache(self) -> dict:
         """Fetch all channel data from the Mattermost API in one sweep.
 
@@ -1211,21 +1237,91 @@ class PostBot(BaseBot):
             )
             return
 
-        # Update in-memory state.
-        target_dict.update(cleaned)
+        # Convert to GroupEntry and update in-memory state.
+        cleaned_entries = {
+            name: GroupEntry(channels=ids, aliases=[])
+            for name, ids in cleaned.items()
+        }
+        target_dict.update(cleaned_entries)
 
-        # Persist to channels.json.
-        path: Path = self.config.channels_toml_path
-        with path.open("r", encoding="utf-8") as fh:
-            data = toml.load(fh)
-        data[json_key] = target_dict
-        with path.open("w", encoding="utf-8") as fh:
-            toml.dump(data, fh)
+        self._save_channel_data()
+        self._build_alias_map()
 
-        logger.info(
-            f"Persisted new groups to {path}: {list(cleaned.keys())}."
-        )
+        logger.info(f"Persisted new groups: {list(cleaned.keys())}.")
         self._post(msg.channel_id, "✅ Group added successfully!")
 
     async def _handle_add_alias(self, msg: ParsedMessage) -> None:
-        self._post(msg.channel_id, "!add_alias not yet implemented")
+        """Register a new alias for a group or whitelisted channel.
+
+        Usage: ``!add_alias <alias> <target>``
+
+        ``alias`` must not contain spaces and is stored lowercase.  ``target``
+        is the canonical group name or whitelist label of an existing entry.
+        Groups take precedence over whitelist labels when names collide.
+
+        Args:
+            msg: The incoming message.
+        """
+        payload = msg.text[len("!add_alias"):].strip()
+        if not payload:
+            self._post(msg.channel_id, "Usage: `!add_alias <alias> <target>`")
+            return
+
+        parts = payload.split(None, 1)
+        if len(parts) != 2:
+            self._post(msg.channel_id, "Usage: `!add_alias <alias> <target>`")
+            return
+
+        alias, target = parts[0].lower(), parts[1].strip()
+
+        if alias in self._alias_map:
+            existing = self._alias_map[alias]
+            self._post(
+                msg.channel_id,
+                f"❌ Alias `{alias}` is already mapped to `{existing}`.",
+            )
+            return
+
+        all_groups: dict[str, GroupEntry] = {
+            **self._visible_groups,
+            **self._private_groups,
+        }
+        group_match = next(
+            (name for name in all_groups if name.lower() == target.lower()),
+            None,
+        )
+        whitelist_match = next(
+            (label for label in self._whitelist if label.lower() == target.lower()),
+            None,
+        )
+
+        if group_match is None and whitelist_match is None:
+            self._post(
+                msg.channel_id,
+                f"❌ Target `{target}` not found in groups or whitelist.",
+            )
+            return
+
+        note = ""
+        if group_match is not None:
+            resolved_target = group_match
+            if group_match in self._visible_groups:
+                self._visible_groups[group_match].aliases.append(alias)
+            else:
+                self._private_groups[group_match].aliases.append(alias)
+            if whitelist_match is not None:
+                note = " (group takes precedence over whitelist label with same name)"
+        else:
+            resolved_target = whitelist_match
+            self._whitelist[whitelist_match].aliases.append(alias)
+
+        self._save_channel_data()
+        self._build_alias_map()
+
+        logger.info(
+            f"User @{msg.sender_name} added alias {alias!r} → {resolved_target!r}."
+        )
+        self._post(
+            msg.channel_id,
+            f"✅ `{alias}` → `{resolved_target}` added.{note}",
+        )

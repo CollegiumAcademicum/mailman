@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-import json
+import toml
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -205,13 +205,13 @@ class TestHandleAddGroup:
     def test_add_group_valid_json(self, bot: PostBot, make_msg):
         bot.driver.channels.get_channel.return_value = {"id": "new_ch"}
         asyncio.run(
-            bot._handle_add_group(make_msg(text='!add_group {"NewGroup": ["new_ch"]}'))
+            bot._handle_add_group(make_msg(text='!add_group NewGroup = ["new_ch"]'))
         )
         assert "NewGroup" in bot._visible_groups
         assert "✅ Group added successfully!" in _last_post(bot)
 
         # Verify group was written to disk
-        saved_data = json.loads(bot.config.channels_json_path.read_text())
+        saved_data = toml.loads(bot.config.channels_toml_path.read_text())
         assert "NewGroup" in saved_data["groups"]
 
     def test_add_group_invalid_json(self, bot: PostBot, make_msg):
@@ -225,7 +225,7 @@ class TestHandleAddGroup:
     def test_add_group_all_invalid_channels(self, bot: PostBot, make_msg):
         bot.driver.channels.get_channel.side_effect = Exception("not found")
         asyncio.run(
-            bot._handle_add_group(make_msg(text='!add_group {"BadGroup": ["bad_id"]}'))
+            bot._handle_add_group(make_msg(text='!add_group BadGroup = ["bad_id"]'))
         )
         text = _last_post(bot)
         assert "No valid groups to add" in text or "no valid channels" in text.lower()
@@ -234,7 +234,7 @@ class TestHandleAddGroup:
         bot.driver.channels.get_channel.return_value = {"id": "priv_ch"}
         asyncio.run(
             bot._handle_add_private_group(
-                make_msg(text='!add_private_group {"NewPrivate": ["priv_ch"]}')
+                make_msg(text='!add_private_group NewPrivate = ["priv_ch"]')
             )
         )
         assert "NewPrivate" in bot._private_groups
@@ -250,7 +250,7 @@ class TestHandleAddGroup:
         """
         bot.driver.channels.get_channel.return_value = {"id": "ch_id_1"}
         asyncio.run(
-            bot._handle_add_group(make_msg(text='!add_group {"purple_group": ["ch_id_1"]}'))
+            bot._handle_add_group(make_msg(text='!add_group purple_group = ["ch_id_1"]'))
         )
         assert "purple_group" in bot._visible_groups
 
