@@ -918,45 +918,60 @@ class PostBot(BaseBot):
 
         for item in inputs:
             stripped = item.strip()
-            if stripped in all_groups:
-                valid_ids.update(all_groups[stripped].channels)
+            stripped_lower = stripped.lower()
+
+            # 1. Check canonical group name (case-insensitive).
+            group_match = next(
+                (name for name in all_groups if name.lower() == stripped_lower),
+                None,
+            )
+            if group_match is not None:
+                valid_ids.update(all_groups[group_match].channels)
                 logger.debug(
-                    f"Resolved group {stripped!r} to {all_groups[stripped].channels}."
+                    f"Resolved group {stripped!r} to {all_groups[group_match].channels}."
                 )
+                continue
+
+            # 2. Check alias map.
+            if stripped_lower in self._alias_map:
+                canonical = self._alias_map[stripped_lower]
+                if canonical in all_groups:
+                    valid_ids.update(all_groups[canonical].channels)
+                elif canonical in self._whitelist:
+                    valid_ids.add(self._whitelist[canonical].id)
+                logger.debug(f"Resolved alias {stripped!r} → {canonical!r}.")
+                continue
+
+            # 3. Try channel cache by system name.
+            clean = stripped_lower.lstrip("#")
+            channel_id = ch_cache["by_name"].get(clean) if ch_cache else None
+
+            if channel_id is None:
+                # Cache miss: fall back to live API.
+                logger.warning(
+                    f"Cache miss for {clean!r}; falling back to live API. "
+                    f"Run !refresh_channels to update the cache."
+                )
+                try:
+                    channel = self.driver.channels.get_channel_by_name(
+                        self._team_id, clean
+                    )
+                    channel_id = channel["id"]
+                except Exception:
+                    channel_id = clean
+                    logger.debug(
+                        f"Could not resolve {clean!r} as a channel name; "
+                        f"treating as raw ID."
+                    )
+
+            if channel_id in self._whitelist_ids:
+                valid_ids.add(channel_id)
             else:
-                clean = stripped.lower().lstrip("#")
-
-                # Try cache first.
-                channel_id = (
-                    ch_cache["by_name"].get(clean) if ch_cache else None
+                invalid_inputs.add(stripped)
+                logger.warning(
+                    f"Channel {stripped!r} (resolved to {channel_id!r}) "
+                    f"is not in the whitelist."
                 )
-
-                if channel_id is None:
-                    # Cache miss: fall back to live API.
-                    logger.warning(
-                        f"Cache miss for {clean!r}; falling back to live API. "
-                        f"Run !refresh_channels to update the cache."
-                    )
-                    try:
-                        channel = self.driver.channels.get_channel_by_name(
-                            self._team_id, clean
-                        )
-                        channel_id = channel["id"]
-                    except Exception:
-                        channel_id = clean
-                        logger.debug(
-                            f"Could not resolve {clean!r} as a channel name; "
-                            f"treating as raw ID."
-                        )
-
-                if channel_id in self._whitelist_ids:
-                    valid_ids.add(channel_id)
-                else:
-                    invalid_inputs.add(stripped)
-                    logger.warning(
-                        f"Channel {stripped!r} (resolved to {channel_id!r}) "
-                        f"is not in the whitelist."
-                    )
 
         valid_names: list[str] = []
         for cid in valid_ids:

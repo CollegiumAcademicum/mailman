@@ -147,3 +147,59 @@ class TestBuildAliasMap:
             bot._load_channel_data()
         assert bot._alias_map["dup"] == "GroupA"
         assert "dup" in caplog.text
+
+
+# ---------------------------------------------------------------------------
+# TestResolveTargetsWithAliases
+# ---------------------------------------------------------------------------
+
+
+class TestResolveTargetsWithAliases:
+    """_resolve_targets should resolve group and whitelist aliases."""
+
+    @pytest.fixture
+    def bot(self, tmp_path):
+        import time
+        from mmbot_framework.core.cache import CacheManager
+        bot = _make_bot(tmp_path, _VALID_TOML)
+        bot._load_channel_data()
+        bot._team_id = "team1"
+        bot.driver = MagicMock()
+        bot.cache = CacheManager()
+        bot.cache.register("channels", lambda: {}, ttl=3600)
+        entry = bot.cache._entries["channels"]
+        entry.data = {
+            "by_id": {
+                "ch_id_1": {"display_name": "Channel 1", "name": "ch-1"},
+                "ch_id_2": {"display_name": "Channel 2", "name": "ch-2"},
+            },
+            "by_name": {"ch-1": "ch_id_1", "ch-2": "ch_id_2"},
+            "all_rows": [],
+        }
+        entry.loaded_at = time.time()
+        return bot
+
+    def test_group_alias_expands_to_channel_ids(self, bot):
+        valid_ids, valid_names, invalid = bot._resolve_targets({"tg"})
+        assert "ch_id_1" in valid_ids
+        assert "ch_id_2" in valid_ids
+        assert invalid == []
+
+    def test_group_alias_case_insensitive(self, bot):
+        valid_ids, _, _ = bot._resolve_targets({"TG"})
+        assert "ch_id_1" in valid_ids
+
+    def test_whitelist_alias_resolves_to_channel_id(self, bot):
+        valid_ids, _, invalid = bot._resolve_targets({"c1"})
+        assert "ch_id_1" in valid_ids
+        assert invalid == []
+
+    def test_canonical_group_name_still_works(self, bot):
+        valid_ids, _, invalid = bot._resolve_targets({"TestGroup"})
+        assert "ch_id_1" in valid_ids
+        assert "ch_id_2" in valid_ids
+
+    def test_unknown_input_ends_up_invalid(self, bot):
+        bot.driver.channels.get_channel_by_name.side_effect = Exception("not found")
+        _, _, invalid = bot._resolve_targets({"totally-unknown"})
+        assert "totally-unknown" in invalid
