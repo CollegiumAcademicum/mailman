@@ -36,7 +36,7 @@ def test_direct_construction_all_fields():
         console_log_level="DEBUG",
         bot_log_channel_id="ch123",
         db_path=Path("/tmp/test.db"),
-        channels_json_path=Path("/tmp/channels.json"),
+        channels_toml_path=Path("/tmp/channels.toml"),
     )
 
     assert config.url == "mm.example.com"
@@ -45,7 +45,7 @@ def test_direct_construction_all_fields():
     assert config.console_log_level == "DEBUG"
     assert config.bot_log_channel_id == "ch123"
     assert config.db_path == Path("/tmp/test.db")
-    assert config.channels_json_path == Path("/tmp/channels.json")
+    assert config.channels_toml_path == Path("/tmp/channels.toml")
 
 
 def test_console_log_level_uppercased():

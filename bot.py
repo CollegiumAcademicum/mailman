@@ -21,6 +21,7 @@ import json
 import logging
 import logging.handlers
 import time
+from dataclasses import dataclass, field as _field
 from pathlib import Path
 from typing import Callable
 
@@ -31,6 +32,26 @@ from database import close_db_connection, initialize_database, log_broadcast
 from patches import apply_ssl_patch
 
 logger = logging.getLogger(__name__)
+
+
+# ── Dataclasses ───────────────────────────────────────────────────────────────
+
+
+@dataclass
+class GroupEntry:
+    """A channel group with an optional list of short-name aliases."""
+
+    channels: list[str]
+    aliases: list[str] = _field(default_factory=list)
+
+
+@dataclass
+class WhitelistEntry:
+    """A whitelisted channel with its TOML label and optional aliases."""
+
+    id: str
+    label: str
+    aliases: list[str] = _field(default_factory=list)
 
 
 # ── Middleware ────────────────────────────────────────────────────────────────
@@ -114,11 +135,12 @@ class PostBot(BaseBot):
         # Resets on bot restart — this matches the original behaviour.
         self._known_users: set[str] = set()
 
-        # Channel groups and whitelist loaded from channels.json at startup
-        # and mutated in-place by !add_group / !add_private_group.
-        self._visible_groups: dict[str, list[str]] = {}
-        self._private_groups: dict[str, list[str]] = {}
-        self._whitelist: set[str] = set()
+        # Channel groups and whitelist loaded from channels.toml at startup.
+        self._visible_groups: dict[str, GroupEntry] = {}
+        self._private_groups: dict[str, GroupEntry] = {}
+        self._whitelist: dict[str, WhitelistEntry] = {}
+        self._whitelist_ids: set[str] = set()
+        self._alias_map: dict[str, str] = {}
 
         # Register all command triggers.  The @command decorator supports only
         # one trigger per method, so we use _dispatcher.register() directly.
@@ -135,6 +157,7 @@ class PostBot(BaseBot):
         self._dispatcher.register("!add_private_group", self._handle_add_private_group)
         self._dispatcher.register("!add_group", self._handle_add_group)
         self._dispatcher.register("!refresh_channels", self._handle_refresh_channels)
+        self._dispatcher.register("!add_alias", self._handle_add_alias)
 
     # ── Lifecycle hooks ──────────────────────────────────────────────────────
 
@@ -417,26 +440,16 @@ class PostBot(BaseBot):
 
     def _resolve_group_channel_names(
         self,
-        groups: dict[str, list[str]],
+        groups: dict[str, GroupEntry],
         ch_cache: dict | None,
         context: str,
     ) -> tuple[list[str], bool]:
-        """Return formatted group/channel lines and whether any cache miss occurred.
-
-        Args:
-            groups: mapping of group name → list of channel IDs
-            ch_cache: the "channels" cache dict, or None if not loaded
-            context: label for log messages ("group" or "private group")
-
-        Returns:
-            (lines, used_fallback) where lines is the list of formatted strings
-            and used_fallback is True if any channel was fetched from the live API.
-        """
+        """Return formatted group/channel lines and whether any cache miss occurred."""
         lines: list[str] = []
         used_fallback = False
-        for name, channel_ids in groups.items():
+        for name, entry in groups.items():
             resolved: list[str] = []
-            for cid in channel_ids:
+            for cid in entry.channels:
                 if ch_cache and cid in ch_cache["by_id"]:
                     resolved.append(ch_cache["by_id"][cid]["name"])
                 else:
@@ -452,7 +465,11 @@ class PostBot(BaseBot):
                             f"Error resolving channel {cid!r} for {context} {name!r}: {exc}"
                         )
                         resolved.append(f"(error: {cid})")
-            lines.append(f"**{name}:** {resolved}\n")
+            if entry.aliases:
+                aka = ", ".join(f"`{a}`" for a in entry.aliases)
+                lines.append(f"**{name}** (aka: {aka}): {resolved}\n")
+            else:
+                lines.append(f"**{name}:** {resolved}\n")
         return lines, used_fallback
 
     async def _handle_get_groups(self, msg: ParsedMessage) -> None:
@@ -596,11 +613,17 @@ class PostBot(BaseBot):
         ch_cache = self.cache.get("channels")
         allowed_channels: list[str] = []
         used_fallback = False
-        for channel_id in self._whitelist:
+        for entry in self._whitelist.values():
+            channel_id = entry.id
             if ch_cache and channel_id in ch_cache["by_id"]:
                 info = ch_cache["by_id"][channel_id]
+                aliases_str = (
+                    f" (aliases: {', '.join(f'`{a}`' for a in entry.aliases)})"
+                    if entry.aliases
+                    else ""
+                )
                 allowed_channels.append(
-                    f"- name: `{info['name']}`    "
+                    f"- name: `{info['name']}`{aliases_str}    "
                     f"(display name: `{info['display_name']}` — "
                     f"ID: `{channel_id}` — team: `{info['team_name']}`)"
                 )
@@ -619,8 +642,13 @@ class PostBot(BaseBot):
                         if info["team_id"]
                         else "N/A"
                     )
+                    aliases_str = (
+                        f" (aliases: {', '.join(f'`{a}`' for a in entry.aliases)})"
+                        if entry.aliases
+                        else ""
+                    )
                     allowed_channels.append(
-                        f"- name: `{info['name']}`    "
+                        f"- name: `{info['name']}`{aliases_str}    "
                         f"(display name: `{info['display_name']}` — "
                         f"ID: `{channel_id}` — team: `{team_name}`)"
                     )
@@ -881,7 +909,7 @@ class PostBot(BaseBot):
             the live API due to a cache miss.
         """
         ch_cache = self.cache.get("channels")
-        all_groups: dict[str, list[str]] = {
+        all_groups: dict[str, GroupEntry] = {
             **self._visible_groups,
             **self._private_groups,
         }
@@ -891,9 +919,9 @@ class PostBot(BaseBot):
         for item in inputs:
             stripped = item.strip()
             if stripped in all_groups:
-                valid_ids.update(all_groups[stripped])
+                valid_ids.update(all_groups[stripped].channels)
                 logger.debug(
-                    f"Resolved group {stripped!r} to {all_groups[stripped]}."
+                    f"Resolved group {stripped!r} to {all_groups[stripped].channels}."
                 )
             else:
                 clean = stripped.lower().lstrip("#")
@@ -921,7 +949,7 @@ class PostBot(BaseBot):
                             f"treating as raw ID."
                         )
 
-                if channel_id in self._whitelist:
+                if channel_id in self._whitelist_ids:
                     valid_ids.add(channel_id)
                 else:
                     invalid_inputs.add(stripped)
@@ -952,29 +980,93 @@ class PostBot(BaseBot):
         return list(valid_ids), valid_names, list(invalid_inputs)
 
     def _load_channel_data(self) -> None:
-        """Read ``channels.json`` and populate in-memory group and whitelist data.
+        """Read ``channels.toml`` and populate in-memory group and whitelist data.
 
         Called at startup via :meth:`on_start` and after any successful
-        ``!add_group`` or ``!add_private_group`` mutation.
+        ``!add_group``, ``!add_private_group``, or ``!add_alias`` mutation.
 
         Raises:
-            FileNotFoundError: If :attr:`~PostBotConfig.channels_toml_path`
-                does not exist.
-            json.JSONDecodeError: If the file contains invalid JSON.
+            FileNotFoundError: If :attr:`~PostBotConfig.channels_toml_path` does not exist.
+            ValueError: If the file uses the old flat whitelist or group format.
         """
-        # TODO add aliase
         path: Path = self.config.channels_toml_path
         logger.info(f"Loading channel data from {path}.")
-        with path.open("r") as fh:
+        with path.open("r", encoding="utf-8") as fh:
             data = toml.load(fh)
-        self._visible_groups = data.get("groups", {})
-        self._private_groups = data.get("private_groups", {})
-        self._whitelist = set(data.get("whitelist", []))
+
+        # Detect old flat whitelist format.
+        if isinstance(data.get("whitelist"), list):
+            raise ValueError(
+                f"{path} uses the old flat whitelist format. "
+                "Migrate to: [whitelist.<label>] with id = '...' and optional aliases = [...]."
+            )
+
+        # Parse whitelist.
+        raw_whitelist: dict = data.get("whitelist", {})
+        self._whitelist = {}
+        for label, entry in raw_whitelist.items():
+            self._whitelist[label] = WhitelistEntry(
+                id=entry["id"],
+                label=label,
+                aliases=[a.lower() for a in entry.get("aliases", [])],
+            )
+
+        # Detect old flat group format and parse groups.
+        def _parse_groups(raw: dict, section: str) -> dict[str, GroupEntry]:
+            result: dict[str, GroupEntry] = {}
+            for name, val in raw.items():
+                if isinstance(val, list):
+                    raise ValueError(
+                        f"{path} uses the old flat group format for {name!r} "
+                        f"in [{section}]. Migrate to: [\"{section}\".\"{name}\"] "
+                        "with channels = [...] and optional aliases = [...]."
+                    )
+                result[name] = GroupEntry(
+                    channels=val["channels"],
+                    aliases=[a.lower() for a in val.get("aliases", [])],
+                )
+            return result
+
+        self._visible_groups = _parse_groups(data.get("groups", {}), "groups")
+        self._private_groups = _parse_groups(data.get("private_groups", {}), "private_groups")
+
+        self._build_alias_map()
         logger.debug(
             f"Loaded {len(self._visible_groups)} visible groups, "
             f"{len(self._private_groups)} private groups, "
             f"{len(self._whitelist)} whitelist entries."
         )
+
+    def _build_alias_map(self) -> None:
+        """Rebuild ``_alias_map`` and ``_whitelist_ids`` from current state.
+
+        Called by :meth:`_load_channel_data` and :meth:`_handle_add_alias`.
+        On alias collision (same alias on two entries) the first definition
+        (TOML file order: visible groups → private groups → whitelist) wins and
+        a warning is logged.
+        """
+        self._alias_map = {}
+        self._whitelist_ids = {e.id for e in self._whitelist.values()}
+
+        sources: list[tuple[str, list[str]]] = []
+        for name, entry in self._visible_groups.items():
+            sources.append((name, entry.aliases))
+        for name, entry in self._private_groups.items():
+            sources.append((name, entry.aliases))
+        for label, entry in self._whitelist.items():
+            sources.append((label, entry.aliases))
+
+        for canonical, aliases in sources:
+            for alias in aliases:
+                key = alias.lower()
+                if key in self._alias_map:
+                    logger.warning(
+                        f"Alias {alias!r} already mapped to "
+                        f"{self._alias_map[key]!r}; skipping duplicate "
+                        f"for {canonical!r}."
+                    )
+                else:
+                    self._alias_map[key] = canonical
 
     async def _load_channel_cache(self) -> dict:
         """Fetch all channel data from the Mattermost API in one sweep.
@@ -1109,3 +1201,6 @@ class PostBot(BaseBot):
             f"Persisted new groups to {path}: {list(cleaned.keys())}."
         )
         self._post(msg.channel_id, "✅ Group added successfully!")
+
+    async def _handle_add_alias(self, msg: ParsedMessage) -> None:
+        self._post(msg.channel_id, "!add_alias not yet implemented")

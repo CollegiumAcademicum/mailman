@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import pytest
+import toml
 
 from mmbot_framework import ParsedMessage
 
@@ -26,21 +26,31 @@ def minimal_config_kwargs() -> dict:
 
 
 # ---------------------------------------------------------------------------
-# channels.json fixture file
+# channels.toml fixture file
 # ---------------------------------------------------------------------------
 
-_CHANNELS_JSON_CONTENT = {
-    "groups": {"TestGroup": ["ch_id_1", "ch_id_2"]},
-    "private_groups": {"PrivateGroup": ["ch_id_3"]},
-    "whitelist": ["ch_id_1", "ch_id_2", "ch_id_3", "whitelisted_id"],
+
+_CHANNELS_TOML_CONTENT = {
+    "whitelist": {
+        "ch-id-1": {"id": "ch_id_1", "aliases": []},
+        "ch-id-2": {"id": "ch_id_2", "aliases": []},
+        "ch-id-3": {"id": "ch_id_3", "aliases": []},
+        "whitelisted": {"id": "whitelisted_id", "aliases": []},
+    },
+    "groups": {
+        "TestGroup": {"channels": ["ch_id_1", "ch_id_2"], "aliases": ["tg"]},
+    },
+    "private_groups": {
+        "PrivateGroup": {"channels": ["ch_id_3"], "aliases": []},
+    },
 }
 
 
 @pytest.fixture
 def channels_file(tmp_path: Path) -> Path:
-    """Write a channels.json into tmp_path and return the Path."""
-    p = tmp_path / "channels.json"
-    p.write_text(json.dumps(_CHANNELS_JSON_CONTENT))
+    """Write a channels.toml into tmp_path and return the Path."""
+    p = tmp_path / "channels.toml"
+    p.write_text(toml.dumps(_CHANNELS_TOML_CONTENT))
     return p
 
 

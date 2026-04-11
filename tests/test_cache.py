@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from bot import PostBot
+from bot import GroupEntry, PostBot, WhitelistEntry
 from config import PostBotConfig
 from mmbot_framework.core.cache import CacheManager
 
@@ -97,9 +97,16 @@ def bot(config, mock_driver):
         b = PostBot(config)
     b._team_id = "test-team-id"
     b._bot_username = "testbot"
-    b._visible_groups = {"TestGroup": ["ch_id_1", "ch_id_2"]}
-    b._private_groups = {"PrivateGroup": ["ch_id_3"]}
-    b._whitelist = {"ch_id_1", "ch_id_2", "ch_id_3", "whitelisted_id"}
+    b._visible_groups = {"TestGroup": GroupEntry(channels=["ch_id_1", "ch_id_2"], aliases=["tg"])}
+    b._private_groups = {"PrivateGroup": GroupEntry(channels=["ch_id_3"], aliases=[])}
+    b._whitelist = {
+        "ch-id-1": WhitelistEntry(id="ch_id_1", label="ch-id-1", aliases=[]),
+        "ch-id-2": WhitelistEntry(id="ch_id_2", label="ch-id-2", aliases=[]),
+        "ch-id-3": WhitelistEntry(id="ch_id_3", label="ch-id-3", aliases=[]),
+        "whitelisted": WhitelistEntry(id="whitelisted_id", label="whitelisted", aliases=[]),
+    }
+    b._whitelist_ids = {"ch_id_1", "ch_id_2", "ch_id_3", "whitelisted_id"}
+    b._alias_map = {"tg": "TestGroup"}
     return b
 
 
