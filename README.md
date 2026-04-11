@@ -19,7 +19,7 @@ postbot/
   config.py      # PostBotConfig(BotConfig) — env var loading and validation
   database.py    # SQLite broadcast log
   patches.py     # SSL workaround
-  channels.json  # Channel group definitions (visible groups, private groups, whitelist)
+  channels.toml  # Channel group definitions (visible groups, private groups, whitelist)
 ```
 
 **Message flow:**
@@ -47,6 +47,7 @@ TEAM_NAME=your-team-name
 # Optional — shown with their defaults
 SESSION_TTL_SECONDS=300
 SESSION_CLEANUP_INTERVAL_SECONDS=60
+CHANNEL_CACHE_TTL_SECONDS=3600  # How long the channel cache stays fresh (seconds)
 
 # Logging
 LOG_LEVEL=INFO                  # File log level
@@ -55,7 +56,7 @@ LOG_FILE=logs/bot.log
 
 # Postbot-specific
 BOT_LOG_CHANNEL_ID=             # Channel ID for broadcast audit messages (empty = disabled)
-CHANNELS_JSON_PATH=channels.json
+CHANNELS_TOML_PATH=channels.toml
 DB_PATH=broadcast_log.db
 ```
 
@@ -111,7 +112,7 @@ uv run pytest -v
 ```bash
 cd postbot
 podman build -f Containerfile -t mailman-bot .
-podman run --env-file .env -v ./channels.json:/app/channels.json:ro mailman-bot
+podman run --env-file .env -v ./channels.toml:/app/channels.toml:ro mailman-bot
 ```
 
 ---
@@ -129,7 +130,8 @@ All interaction happens via **direct message** to the bot. Messages in channels 
 | `!get_private_groups`              | List all private channel groups                             |
 | `!add_group <TOML>`                | Add one or more public groups at runtime                    |
 | `!add_private_group <TOML>`        | Add one or more private groups at runtime                   |
-| `!refresh_channels `               | refreshes channel cache                                     |
+| `!refresh_channels`                | Force-reload the channel cache immediately                  |
+| `!add_alias <alias> <target>`      | Add a short alias for a group or whitelisted channel        |
 | *(any other message)*              | Start the broadcast wizard                                  |
 
 ### Broadcast Wizard
@@ -151,16 +153,26 @@ Sessions expire after `SESSION_TTL_SECONDS` (default 5 minutes). If your session
 ### Adding Groups at Runtime
 
 ```
-!add_group {"New Group Name": ["channel_id_1", "channel_id_2"]}
+!add_group "New Group Name" = ["channel_id_1", "channel_id_2"]
 ```
 
 Multiple groups in one command:
 
 ```
-!add_group {"Floor 1": ["id_a", "id_b"], "Floor 2": ["id_c", "id_d"]}
+!add_group "Floor 1" = ["id_a", "id_b"]
+!add_group "Floor 2" = ["id_c", "id_d"]
 ```
 
-Changes are persisted to `channels.json` immediately.
+Changes are persisted to `channels.toml` immediately.
+
+### Adding Aliases at Runtime
+
+```
+!add_alias cluster "ALLE Cluster Briefkästen"
+!add_alias wg "ALLE WG Briefkästen"
+```
+
+Aliases are case-insensitive and stored lowercase. They work in the broadcast wizard as shorthand for group names or whitelisted channels.
 
 ---
 
@@ -169,3 +181,20 @@ Changes are persisted to `channels.json` immediately.
 Every successful broadcast is recorded in a SQLite database (`broadcast_log.db` by default), including sender, timestamp, target channels, and message content.
 
 If `BOT_LOG_CHANNEL_ID` is set, a summary is also posted to that channel after each broadcast.
+
+---
+
+## Channel Cache
+
+At startup the bot fetches all channel and team data in one API sweep and stores
+it in memory. All command handlers (`!channels`, `!id`, `!get_groups`,
+`!get_private_groups`, and the broadcast wizard) read from this cache instead of
+calling the Mattermost API on every request.
+
+The cache is refreshed automatically in the background every
+`CHANNEL_CACHE_TTL_SECONDS` seconds (default: 3600 / one hour). If a channel
+has been created or renamed since the last refresh, any user can force an
+immediate reload with `!refresh_channels`.
+
+On a cache miss (a channel created after the last refresh), the bot falls back
+to a live API call and appends a note suggesting `!refresh_channels`.
