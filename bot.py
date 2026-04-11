@@ -887,7 +887,7 @@ class PostBot(BaseBot):
 
     def _resolve_targets(
         self, inputs: set[str]
-    ) -> tuple[list[str], list[str], list[str], bool]:
+    ) -> tuple[list[str], list[str], list[str]]:
         """Resolve user-supplied channel names, IDs, and group names to channel IDs.
 
         Lookup order for each non-group input:
