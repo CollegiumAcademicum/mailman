@@ -120,16 +120,17 @@ podman run --env-file .env -v ./channels.json:/app/channels.json:ro mailman-bot
 
 All interaction happens via **direct message** to the bot. Messages in channels or group chats are ignored.
 
-| Command                             | Description |
-|-------------------------------------|---|
-| `!help` / `help` / `--help` / `man` | Show usage instructions |
-| `!channels`                         | List all channels the bot has access to in the current team |
-| `!id <channel name>`                | Look up a channel's ID by name |
-| `!get_groups`                       | List all visible channel groups |
-| `!get_private_groups`               | List all private channel groups |
-| `!add_group <TOML>`                 | Add one or more public groups at runtime |
-| `!add_private_group <TOML>`         | Add one or more private groups at runtime |
-| *(any other message)*               | Start the broadcast wizard |
+| Command                            | Description                                                 |
+|------------------------------------|-------------------------------------------------------------|
+| `!help` / `help` / `--help` / `man` | Show usage instructions                                     |
+| `!channels`                        | List all channels the bot has access to in the current team |
+| `!id <channel name>`               | Look up a channel's ID by name                              |
+| `!get_groups`                      | List all visible channel groups                             |
+| `!get_private_groups`              | List all private channel groups                             |
+| `!add_group <TOML>`                | Add one or more public groups at runtime                    |
+| `!add_private_group <TOML>`        | Add one or more private groups at runtime                   |
+| `!refresh_channels `               | refreshes channel cache                                     |
+| *(any other message)*              | Start the broadcast wizard                                  |
 
 ### Broadcast Wizard
 
