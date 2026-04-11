@@ -294,6 +294,8 @@ class TestHandleGetPrivateGroupsWithCache:
         msg = make_msg(text="!get_private_groups")
         await bot._handle_get_private_groups(msg)
         bot.driver.channels.get_channel.assert_not_called()
+        reply = _last_post(bot)
+        assert "PrivateGroup" in reply
 
     @pytest.mark.anyio
     async def test_falls_back_to_api_on_cache_miss(self, bot, make_msg):
