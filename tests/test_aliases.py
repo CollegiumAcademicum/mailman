@@ -203,3 +203,72 @@ class TestResolveTargetsWithAliases:
         bot.driver.channels.get_channel_by_name.side_effect = Exception("not found")
         _, _, invalid = bot._resolve_targets({"totally-unknown"})
         assert "totally-unknown" in invalid
+
+
+# ---------------------------------------------------------------------------
+# TestHandleChannelsAliasesColumn
+# ---------------------------------------------------------------------------
+
+
+class TestHandleChannelsAliasesColumn:
+    @pytest.fixture
+    def bot(self, tmp_path):
+        import time
+        from mmbot_framework.core.cache import CacheManager
+        content = {
+            "whitelist": {
+                "ch-id-1": {"id": "ch_id_1", "aliases": ["shortname", "sn"]},
+                "ch-id-2": {"id": "ch_id_2", "aliases": []},
+            },
+            "groups": {},
+            "private_groups": {},
+        }
+        bot = _make_bot(tmp_path, content)
+        bot._load_channel_data()
+        bot._team_id = "team1"
+        bot.driver = MagicMock()
+        bot.cache = CacheManager()
+        bot.cache.register("channels", lambda: {}, ttl=3600)
+        entry = bot.cache._entries["channels"]
+        entry.data = {
+            "by_id": {
+                "ch_id_1": {
+                    "display_name": "Channel One",
+                    "name": "channel-one",
+                    "team_name": "Team",
+                    "team_id": "t1",
+                },
+                "ch_id_2": {
+                    "display_name": "Channel Two",
+                    "name": "channel-two",
+                    "team_name": "Team",
+                    "team_id": "t1",
+                },
+            },
+            "by_name": {},
+            "all_rows": [],
+        }
+        entry.loaded_at = time.time()
+        return bot
+
+    @pytest.mark.anyio
+    async def test_aliases_column_present_in_header(self, bot, make_msg):
+        msg = make_msg(text="!channels")
+        await bot._handle_channels(msg)
+        reply = bot.driver.posts.create_post.call_args_list[-1][0][0]["message"]
+        assert "aliases" in reply
+
+    @pytest.mark.anyio
+    async def test_aliases_populated_for_whitelisted_channel(self, bot, make_msg):
+        msg = make_msg(text="!channels")
+        await bot._handle_channels(msg)
+        reply = bot.driver.posts.create_post.call_args_list[-1][0][0]["message"]
+        assert "shortname" in reply
+        assert "sn" in reply
+
+    @pytest.mark.anyio
+    async def test_no_aliases_shows_empty_cell(self, bot, make_msg):
+        msg = make_msg(text="!channels")
+        await bot._handle_channels(msg)
+        reply = bot.driver.posts.create_post.call_args_list[-1][0][0]["message"]
+        assert "Channel Two" in reply

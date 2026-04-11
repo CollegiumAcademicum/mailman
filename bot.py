@@ -432,10 +432,20 @@ class PostBot(BaseBot):
                 "or run `!refresh_channels`.",
             )
             return
+        # Build channel-ID → alias list map from the whitelist.
+        id_to_aliases: dict[str, list[str]] = {
+            e.id: e.aliases for e in self._whitelist.values()
+        }
         lines = [
-            "| display_name | name | ID | team_name |",
-            "| :--- | :--- | :--- | :--- |",
-        ] + ch_cache["all_rows"]
+            "| display_name | name | ID | team_name | aliases |",
+            "| :--- | :--- | :--- | :--- | :--- |",
+        ]
+        for cid, info in ch_cache["by_id"].items():
+            aliases_str = ", ".join(f"`{a}`" for a in id_to_aliases.get(cid, []))
+            lines.append(
+                f"| `{info['display_name']}` | {info['name']} "
+                f"| `{cid}` | {info['team_name']} | {aliases_str} |"
+            )
         self._post(msg.channel_id, "\n".join(lines))
 
     def _resolve_group_channel_names(
