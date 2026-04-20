@@ -108,6 +108,8 @@ def is_due(cron_expr: str, last_run: datetime | None, now: datetime) -> bool:
     If *last_run* is None (task never ran), uses a 60-second look-back window
     so the task fires on the first scheduler tick that matches the schedule.
     """
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
     start = last_run if last_run is not None else now - timedelta(seconds=60)
     cron = croniter(cron_expr, start)
     next_run = cron.get_next(datetime)
@@ -143,22 +145,32 @@ async def scheduler_loop(
     registry: TaskRegistry,
     driver,
     post_fn: Callable[[str, str], None],
-    log_channel_id: str,
+    log_channel_id: str | None,
 ) -> None:
     """Background loop: wake every 60 s, fire any tasks that are due.
 
     Each due task runs as its own ``asyncio.Task`` so a slow task does not
-    delay the next scheduler tick.
+    delay the next scheduler tick.  On cancellation all in-flight tasks are
+    cancelled and awaited before the CancelledError is re-raised.
     """
-    while True:
-        await asyncio.sleep(60)
-        now = datetime.now(timezone.utc)
-        for name, entry in list(registry.tasks.items()):
-            cron_expr = registry.schedule.get(name)
-            if cron_expr is None:
-                continue
-            if is_due(cron_expr, entry.last_run, now):
-                asyncio.create_task(
-                    _fire_task(entry, driver, post_fn, log_channel_id)
-                )
-                logger.debug(f"Scheduled task {name!r} dispatched.")
+    pending: set[asyncio.Task] = set()
+    try:
+        while True:
+            await asyncio.sleep(60)
+            now = datetime.now(timezone.utc)
+            for name, entry in list(registry.tasks.items()):
+                cron_expr = registry.schedule.get(name)
+                if cron_expr is None:
+                    continue
+                if is_due(cron_expr, entry.last_run, now):
+                    t = asyncio.create_task(
+                        _fire_task(entry, driver, post_fn, log_channel_id)
+                    )
+                    pending.add(t)
+                    t.add_done_callback(pending.discard)
+                    logger.debug(f"Scheduled task {name!r} dispatched.")
+    except asyncio.CancelledError:
+        for t in pending:
+            t.cancel()
+        await asyncio.gather(*pending, return_exceptions=True)
+        raise
