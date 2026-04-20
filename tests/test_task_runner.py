@@ -139,3 +139,74 @@ def test_load_schedule_empty_tasks_section(tmp_path):
     (tmp_path / "scheduler.toml").write_text("[tasks]\n")
     schedule = load_schedule(tmp_path / "scheduler.toml")
     assert schedule == {}
+
+
+from task_runner import is_due, _fire_task
+
+
+# ── is_due ────────────────────────────────────────────────────────────────────
+
+def test_is_due_fires_when_due():
+    # Every minute; last ran 61s ago — should fire.
+    cron = "* * * * *"
+    now = datetime(2026, 4, 20, 8, 1, 0, tzinfo=timezone.utc)
+    last = datetime(2026, 4, 20, 8, 0, 0, tzinfo=timezone.utc)
+    assert is_due(cron, last, now) is True
+
+
+def test_is_due_skips_when_not_yet_due():
+    # Hourly; last ran at 08:00, now is 08:30 — should NOT fire.
+    cron = "0 * * * *"
+    now = datetime(2026, 4, 20, 8, 30, 0, tzinfo=timezone.utc)
+    last = datetime(2026, 4, 20, 8, 0, 0, tzinfo=timezone.utc)
+    assert is_due(cron, last, now) is False
+
+
+def test_is_due_fires_when_never_run():
+    # Every minute; never run — should fire (uses 60s look-back window).
+    cron = "* * * * *"
+    now = datetime(2026, 4, 20, 8, 1, 0, tzinfo=timezone.utc)
+    assert is_due(cron, None, now) is True
+
+
+def test_is_due_skips_rare_schedule_when_never_run():
+    # Annually; never run, now is not the scheduled time — should NOT fire.
+    cron = "0 0 1 1 *"  # 1st Jan 00:00
+    now = datetime(2026, 4, 20, 8, 0, 0, tzinfo=timezone.utc)
+    assert is_due(cron, None, now) is False
+
+
+# ── _fire_task ────────────────────────────────────────────────────────────────
+
+def test_fire_task_sets_last_run():
+    async def run(driver): pass
+    entry = TaskEntry(name="t", run=run)
+    before = datetime.now(timezone.utc)
+    asyncio.run(_fire_task(entry, object(), lambda c, m: None, ""))
+    assert entry.last_run is not None
+    assert entry.last_run >= before
+
+
+def test_fire_task_posts_on_error():
+    async def run(driver): raise RuntimeError("boom")
+    entry = TaskEntry(name="t", run=run)
+    posted: list[tuple[str, str]] = []
+    asyncio.run(_fire_task(entry, object(), lambda c, m: posted.append((c, m)), "log-ch"))
+    assert len(posted) == 1
+    assert "log-ch" == posted[0][0]
+    assert "boom" in posted[0][1]
+
+
+def test_fire_task_no_post_without_log_channel():
+    async def run(driver): raise RuntimeError("boom")
+    entry = TaskEntry(name="t", run=run)
+    posted: list = []
+    asyncio.run(_fire_task(entry, object(), lambda c, m: posted.append(m), ""))
+    assert posted == []
+
+
+def test_fire_task_does_not_update_last_run_on_error():
+    async def run(driver): raise RuntimeError("boom")
+    entry = TaskEntry(name="t", run=run)
+    asyncio.run(_fire_task(entry, object(), lambda c, m: None, ""))
+    assert entry.last_run is None

@@ -97,3 +97,68 @@ def load_schedule(path: Path) -> dict[str, str]:
     with path.open("r", encoding="utf-8") as fh:
         data = toml.load(fh)
     return dict(data.get("tasks", {}))
+
+
+# ── Scheduling ────────────────────────────────────────────────────────────────
+
+
+def is_due(cron_expr: str, last_run: datetime | None, now: datetime) -> bool:
+    """Return True if *cron_expr* fires between *last_run* and *now*.
+
+    If *last_run* is None (task never ran), uses a 60-second look-back window
+    so the task fires on the first scheduler tick that matches the schedule.
+    """
+    start = last_run if last_run is not None else now - timedelta(seconds=60)
+    cron = croniter(cron_expr, start)
+    next_run = cron.get_next(datetime)
+    return next_run <= now
+
+
+async def _fire_task(
+    entry: TaskEntry,
+    driver,
+    post_fn: Callable[[str, str], None],
+    log_channel_id: str,
+) -> None:
+    """Run *entry.run(driver)*, update *entry.last_run*, and report errors.
+
+    On success: updates ``entry.last_run`` to now.
+    On exception: logs the error and, if *log_channel_id* is non-empty, posts
+    an error notice via *post_fn*.  ``last_run`` is NOT updated on failure.
+    """
+    try:
+        await entry.run(driver)
+        entry.last_run = datetime.now(timezone.utc)
+        logger.info(f"Task {entry.name!r} completed.")
+    except Exception as exc:
+        logger.error(f"Task {entry.name!r} failed: {exc}")
+        if log_channel_id:
+            post_fn(
+                log_channel_id,
+                f"⚠️ Scheduled task `{entry.name}` failed: {exc}",
+            )
+
+
+async def scheduler_loop(
+    registry: TaskRegistry,
+    driver,
+    post_fn: Callable[[str, str], None],
+    log_channel_id: str,
+) -> None:
+    """Background loop: wake every 60 s, fire any tasks that are due.
+
+    Each due task runs as its own ``asyncio.Task`` so a slow task does not
+    delay the next scheduler tick.
+    """
+    while True:
+        await asyncio.sleep(60)
+        now = datetime.now(timezone.utc)
+        for name, entry in list(registry.tasks.items()):
+            cron_expr = registry.schedule.get(name)
+            if cron_expr is None:
+                continue
+            if is_due(cron_expr, entry.last_run, now):
+                asyncio.create_task(
+                    _fire_task(entry, driver, post_fn, log_channel_id)
+                )
+                logger.debug(f"Scheduled task {name!r} dispatched.")
