@@ -15,73 +15,73 @@ id = "6izckrzh6p85pjqqgktw8fmo8y"
 aliases = []
 
 [groups."ALLE Cluster Briefkästen"]
-channels = ["wjkwhihmb38gjdfhesaqqm64ra", "3r3hg497o788tbe5r1xdn357ic", "3dc95u1cxpr398gkfi46xt7u3e", "byopozq31j87pgxhjzqo5bu5aa", "mobcau81q3nibk5sd6xkfjtdra", "kfu6ab9ea7dtjpcakgso6iu3sr", "ifbua11xu7b4bpc36nza8zjxdc", "ener867qy7y13papkq1517dgyr", "isyg658kiidupxt9oyazmkuwua", "db8sr93bd7d59ysgrrwi4i8s7h", "hkq4zo3r7tdq8emx1jerozdgzw", "3scxbuceuigozeyudeqc3soczh", "y4sswsgtgigmdc495mwsarx33c", "1gebfuu9u7rf88imo6h3y3gozo"]
+channels = [ "wjkwhihmb38gjdfhesaqqm64ra", "3r3hg497o788tbe5r1xdn357ic", "3dc95u1cxpr398gkfi46xt7u3e", "byopozq31j87pgxhjzqo5bu5aa", "mobcau81q3nibk5sd6xkfjtdra", "kfu6ab9ea7dtjpcakgso6iu3sr", "ifbua11xu7b4bpc36nza8zjxdc", "ener867qy7y13papkq1517dgyr", "isyg658kiidupxt9oyazmkuwua", "db8sr93bd7d59ysgrrwi4i8s7h", "hkq4zo3r7tdq8emx1jerozdgzw", "3scxbuceuigozeyudeqc3soczh", "y4sswsgtgigmdc495mwsarx33c", "1gebfuu9u7rf88imo6h3y3gozo",]
 aliases = []
 
 [groups."Cluster Briefkästen EG"]
-channels = ["wjkwhihmb38gjdfhesaqqm64ra", "3r3hg497o788tbe5r1xdn357ic"]
+channels = [ "wjkwhihmb38gjdfhesaqqm64ra", "3r3hg497o788tbe5r1xdn357ic",]
 aliases = []
 
 [groups."Cluster Briefkästen 1. OG"]
-channels = ["3dc95u1cxpr398gkfi46xt7u3e", "byopozq31j87pgxhjzqo5bu5aa", "mobcau81q3nibk5sd6xkfjtdra", "kfu6ab9ea7dtjpcakgso6iu3sr"]
+channels = [ "3dc95u1cxpr398gkfi46xt7u3e", "byopozq31j87pgxhjzqo5bu5aa", "mobcau81q3nibk5sd6xkfjtdra", "kfu6ab9ea7dtjpcakgso6iu3sr",]
 aliases = []
 
 [groups."Cluster Briefkästen 2. OG"]
-channels = ["ifbua11xu7b4bpc36nza8zjxdc", "ener867qy7y13papkq1517dgyr", "isyg658kiidupxt9oyazmkuwua", "db8sr93bd7d59ysgrrwi4i8s7h"]
+channels = [ "ifbua11xu7b4bpc36nza8zjxdc", "ener867qy7y13papkq1517dgyr", "isyg658kiidupxt9oyazmkuwua", "db8sr93bd7d59ysgrrwi4i8s7h",]
 aliases = []
 
 [groups."Cluster Briefkästen 3. OG"]
-channels = ["hkq4zo3r7tdq8emx1jerozdgzw", "3scxbuceuigozeyudeqc3soczh", "y4sswsgtgigmdc495mwsarx33c", "1gebfuu9u7rf88imo6h3y3gozo"]
+channels = [ "hkq4zo3r7tdq8emx1jerozdgzw", "3scxbuceuigozeyudeqc3soczh", "y4sswsgtgigmdc495mwsarx33c", "1gebfuu9u7rf88imo6h3y3gozo",]
 aliases = []
 
 [groups."ALLE WG Briefkästen"]
-channels = ["e5dimwbokjnmucs3q9o915wyna", "beugzez81bnx9f4ywrbpezownh", "5ggm6dskpbr5ikc8qzksxjw31o", "bnztrjqjt7be8x7umeqgtdu7xa", "ijw58n1qubrrpdx3jtdb15yxso", "sbj448duu3n69q8hsaqyib9cda", "9wjw9mecatnz9ry5b941y9kmdh", "xcu86akqbjg6dg9w3xbkaud7ch", "e5h9bsccd3fi7gteus4p7wxi8w", "hauijh76ajn1udfo34q1k7zooy", "z6gsnq4byt8mxfurjknrmiw5uy", "9weitxqzz7d7unakfsamodn6wo", "wfyaysxrmtd13y5fj679zzbwse", "8ceaebeb63rd381wfbu9hw1yna", "g5uyftthhpby8nbz9a8y1dbsaa", "j44xp18p9fye3q8eq6ih6beyur", "tukp1agnbpy33p9op66ykmamna", "hx7iijf473rjmruzejif5qzx3y", "5cc7fs5fppf1pguw9yunaqdtiw", "1ua57rok17go9f1n5obnfzkwnh", "4djhtfywyj8sfrutmtwkd1q4ac", "bx1hxxqhtf8fjeoucqewy7jtkw", "8jo39raottnifdghwnz5e9ae9r", "xyzqywmn6bbwtqxqapmnzw8dey", "jpdtxfm7tibmpmwxiorp378f8o", "f8km9s64tbnoux8xb63qpba4uc", "rxxidz669idsux19n9694w8szc", "ojfa1qr1nb8ciy6t6dbfaejy5a", "38t9kcfq778ht869zaz1z56dph", "qeig9hass7fkxcxcxy4r7q4szr", "rgadorojf7bpdbnjzd9w4uz4ph", "kjhmcnmzmfddtcbpybsyu13fte", "69f5wzq7o3rszm55o8p8y9osce", "hfk47dse3788jfcx3t8qk1optw", "upt18p5zg3re8r1nb3duhgzr4e", "f1b4qjfwk3fsmdtekd5ufgyzxy", "jcdwtt4dmtdc8byu7szf7r7mgy", "d4ui86yxibbw7ept3bqb38j4dw", "zgtgc74wgif4irbuauyamcax8w", "96frbpues3nkdfe5zjfjn6q9ia", "drzkukk4p3gkdj9eonqm7yt6na", "cfytfnna5f89inhfoxkqe8cwfc", "bq7obr9rx3fxjbhh4uf5kejecr", "8otasprmi3ga7x6as1sttq1o6w", "a4zf5wrxgbr8imhajm6xers3qo", "84txspt9pjn4jbfmoomks9thay"]
+channels = [ "e5dimwbokjnmucs3q9o915wyna", "beugzez81bnx9f4ywrbpezownh", "5ggm6dskpbr5ikc8qzksxjw31o", "bnztrjqjt7be8x7umeqgtdu7xa", "ijw58n1qubrrpdx3jtdb15yxso", "sbj448duu3n69q8hsaqyib9cda", "9wjw9mecatnz9ry5b941y9kmdh", "xcu86akqbjg6dg9w3xbkaud7ch", "e5h9bsccd3fi7gteus4p7wxi8w", "hauijh76ajn1udfo34q1k7zooy", "z6gsnq4byt8mxfurjknrmiw5uy", "9weitxqzz7d7unakfsamodn6wo", "wfyaysxrmtd13y5fj679zzbwse", "8ceaebeb63rd381wfbu9hw1yna", "g5uyftthhpby8nbz9a8y1dbsaa", "j44xp18p9fye3q8eq6ih6beyur", "tukp1agnbpy33p9op66ykmamna", "hx7iijf473rjmruzejif5qzx3y", "5cc7fs5fppf1pguw9yunaqdtiw", "1ua57rok17go9f1n5obnfzkwnh", "4djhtfywyj8sfrutmtwkd1q4ac", "bx1hxxqhtf8fjeoucqewy7jtkw", "8jo39raottnifdghwnz5e9ae9r", "xyzqywmn6bbwtqxqapmnzw8dey", "jpdtxfm7tibmpmwxiorp378f8o", "f8km9s64tbnoux8xb63qpba4uc", "rxxidz669idsux19n9694w8szc", "ojfa1qr1nb8ciy6t6dbfaejy5a", "38t9kcfq778ht869zaz1z56dph", "qeig9hass7fkxcxcxy4r7q4szr", "rgadorojf7bpdbnjzd9w4uz4ph", "kjhmcnmzmfddtcbpybsyu13fte", "69f5wzq7o3rszm55o8p8y9osce", "hfk47dse3788jfcx3t8qk1optw", "upt18p5zg3re8r1nb3duhgzr4e", "f1b4qjfwk3fsmdtekd5ufgyzxy", "jcdwtt4dmtdc8byu7szf7r7mgy", "d4ui86yxibbw7ept3bqb38j4dw", "zgtgc74wgif4irbuauyamcax8w", "96frbpues3nkdfe5zjfjn6q9ia", "drzkukk4p3gkdj9eonqm7yt6na", "cfytfnna5f89inhfoxkqe8cwfc", "bq7obr9rx3fxjbhh4uf5kejecr", "8otasprmi3ga7x6as1sttq1o6w", "a4zf5wrxgbr8imhajm6xers3qo", "84txspt9pjn4jbfmoomks9thay",]
 aliases = []
 
 [groups."WG Briefkästen EG"]
-channels = ["e5dimwbokjnmucs3q9o915wyna", "beugzez81bnx9f4ywrbpezownh", "5ggm6dskpbr5ikc8qzksxjw31o", "bnztrjqjt7be8x7umeqgtdu7xa", "ijw58n1qubrrpdx3jtdb15yxso", "sbj448duu3n69q8hsaqyib9cda", "9wjw9mecatnz9ry5b941y9kmdh"]
+channels = [ "e5dimwbokjnmucs3q9o915wyna", "beugzez81bnx9f4ywrbpezownh", "5ggm6dskpbr5ikc8qzksxjw31o", "bnztrjqjt7be8x7umeqgtdu7xa", "ijw58n1qubrrpdx3jtdb15yxso", "sbj448duu3n69q8hsaqyib9cda", "9wjw9mecatnz9ry5b941y9kmdh",]
 aliases = []
 
 [groups."WG Briefkästen 1. OG"]
-channels = ["xcu86akqbjg6dg9w3xbkaud7ch", "e5h9bsccd3fi7gteus4p7wxi8w", "hauijh76ajn1udfo34q1k7zooy", "z6gsnq4byt8mxfurjknrmiw5uy", "9weitxqzz7d7unakfsamodn6wo", "wfyaysxrmtd13y5fj679zzbwse", "8ceaebeb63rd381wfbu9hw1yna", "g5uyftthhpby8nbz9a8y1dbsaa", "j44xp18p9fye3q8eq6ih6beyur", "tukp1agnbpy33p9op66ykmamna", "hx7iijf473rjmruzejif5qzx3y", "5cc7fs5fppf1pguw9yunaqdtiw", "1ua57rok17go9f1n5obnfzkwnh"]
+channels = [ "xcu86akqbjg6dg9w3xbkaud7ch", "e5h9bsccd3fi7gteus4p7wxi8w", "hauijh76ajn1udfo34q1k7zooy", "z6gsnq4byt8mxfurjknrmiw5uy", "9weitxqzz7d7unakfsamodn6wo", "wfyaysxrmtd13y5fj679zzbwse", "8ceaebeb63rd381wfbu9hw1yna", "g5uyftthhpby8nbz9a8y1dbsaa", "j44xp18p9fye3q8eq6ih6beyur", "tukp1agnbpy33p9op66ykmamna", "hx7iijf473rjmruzejif5qzx3y", "5cc7fs5fppf1pguw9yunaqdtiw", "1ua57rok17go9f1n5obnfzkwnh",]
 aliases = []
 
 [groups."WG Briefkästen 2. OG"]
-channels = ["4djhtfywyj8sfrutmtwkd1q4ac", "bx1hxxqhtf8fjeoucqewy7jtkw", "8jo39raottnifdghwnz5e9ae9r", "xyzqywmn6bbwtqxqapmnzw8dey", "jpdtxfm7tibmpmwxiorp378f8o", "f8km9s64tbnoux8xb63qpba4uc", "rxxidz669idsux19n9694w8szc", "ojfa1qr1nb8ciy6t6dbfaejy5a", "38t9kcfq778ht869zaz1z56dph", "qeig9hass7fkxcxcxy4r7q4szr", "rgadorojf7bpdbnjzd9w4uz4ph", "kjhmcnmzmfddtcbpybsyu13fte", "69f5wzq7o3rszm55o8p8y9osce"]
+channels = [ "4djhtfywyj8sfrutmtwkd1q4ac", "bx1hxxqhtf8fjeoucqewy7jtkw", "8jo39raottnifdghwnz5e9ae9r", "xyzqywmn6bbwtqxqapmnzw8dey", "jpdtxfm7tibmpmwxiorp378f8o", "f8km9s64tbnoux8xb63qpba4uc", "rxxidz669idsux19n9694w8szc", "ojfa1qr1nb8ciy6t6dbfaejy5a", "38t9kcfq778ht869zaz1z56dph", "qeig9hass7fkxcxcxy4r7q4szr", "rgadorojf7bpdbnjzd9w4uz4ph", "kjhmcnmzmfddtcbpybsyu13fte", "69f5wzq7o3rszm55o8p8y9osce",]
 aliases = []
 
 [groups."WG Briefkästen 3. OG"]
-channels = ["hfk47dse3788jfcx3t8qk1optw", "upt18p5zg3re8r1nb3duhgzr4e", "f1b4qjfwk3fsmdtekd5ufgyzxy", "jcdwtt4dmtdc8byu7szf7r7mgy", "d4ui86yxibbw7ept3bqb38j4dw", "zgtgc74wgif4irbuauyamcax8w", "96frbpues3nkdfe5zjfjn6q9ia", "drzkukk4p3gkdj9eonqm7yt6na", "cfytfnna5f89inhfoxkqe8cwfc", "bq7obr9rx3fxjbhh4uf5kejecr", "8otasprmi3ga7x6as1sttq1o6w", "a4zf5wrxgbr8imhajm6xers3qo", "84txspt9pjn4jbfmoomks9thay"]
+channels = [ "hfk47dse3788jfcx3t8qk1optw", "upt18p5zg3re8r1nb3duhgzr4e", "f1b4qjfwk3fsmdtekd5ufgyzxy", "jcdwtt4dmtdc8byu7szf7r7mgy", "d4ui86yxibbw7ept3bqb38j4dw", "zgtgc74wgif4irbuauyamcax8w", "96frbpues3nkdfe5zjfjn6q9ia", "drzkukk4p3gkdj9eonqm7yt6na", "cfytfnna5f89inhfoxkqe8cwfc", "bq7obr9rx3fxjbhh4uf5kejecr", "8otasprmi3ga7x6as1sttq1o6w", "a4zf5wrxgbr8imhajm6xers3qo", "84txspt9pjn4jbfmoomks9thay",]
 aliases = []
 
 [groups.dev_all_collegium]
-channels = ["z46ifxzefinut86nycbzzontao", "34ep73q6kprb8c57bps8xsm7rr", "6izckrzh6p85pjqqgktw8fmo8y", "nia18g1eojrrdg3mucpaze39dc", "zweohdr1cfngdrzfjpi3fra6ir"]
+channels = [ "z46ifxzefinut86nycbzzontao", "34ep73q6kprb8c57bps8xsm7rr", "6izckrzh6p85pjqqgktw8fmo8y", "nia18g1eojrrdg3mucpaze39dc", "zweohdr1cfngdrzfjpi3fra6ir",]
+aliases = [ "dev_all_c",]
+
+[groups.12345]
+channels = [ "z46ifxzefinut86nycbzzontao", "nia18g1eojrrdg3mucpaze39dc",]
 aliases = []
 
-[groups."12345"]
-channels = ["z46ifxzefinut86nycbzzontao", "nia18g1eojrrdg3mucpaze39dc"]
-aliases = []
-
-[groups."1"]
-channels = ["z46ifxzefinut86nycbzzontao"]
+[groups.1]
+channels = [ "z46ifxzefinut86nycbzzontao",]
 aliases = []
 
 [groups.bot-test2]
-channels = ["34ep73q6kprb8c57bps8xsm7rr"]
+channels = [ "34ep73q6kprb8c57bps8xsm7rr",]
 aliases = []
 
 [groups.bot-test1]
-channels = ["z46ifxzefinut86nycbzzontao"]
+channels = [ "z46ifxzefinut86nycbzzontao",]
 aliases = []
 
 [groups.bot-test3]
-channels = ["6izckrzh6p85pjqqgktw8fmo8y"]
+channels = [ "6izckrzh6p85pjqqgktw8fmo8y",]
 aliases = []
 
 [groups.bot-test4]
-channels = ["nia18g1eojrrdg3mucpaze39dc"]
+channels = [ "nia18g1eojrrdg3mucpaze39dc",]
 aliases = []
 
 [private_groups.all-dev]
-channels = ["6yzo1pcbzid33m3mqid5crxsfe", "qhx953qdfid9bn9pjtpqdezzoh", "mwquacscj78a3b6x58cnaw5sah"]
+channels = [ "6yzo1pcbzid33m3mqid5crxsfe", "qhx953qdfid9bn9pjtpqdezzoh", "mwquacscj78a3b6x58cnaw5sah",]
 aliases = []
