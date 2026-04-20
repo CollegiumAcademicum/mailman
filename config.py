@@ -40,6 +40,8 @@ class PostBotConfig(BotConfig):
     db_path: Path = Path("broadcast_log.db")
     console_log_level: str = "WARNING"
     channel_cache_ttl_seconds: int = 3600
+    tasks_dir: Path = Path("tasks")
+    scheduler_toml_path: Path = Path("scheduler.toml")
 
     # To add a new field, add it here e.g.
     # new_field: str = "default_value"
