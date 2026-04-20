@@ -289,3 +289,140 @@ def test_scheduler_loop_cancels_in_flight_tasks_on_shutdown():
     asyncio.run(run())
     assert completed == []
     assert cancelled == [True]
+
+
+# ── PostBot integration ────────────────────────────────────────────────────────
+
+import json  # noqa: E402
+from unittest.mock import MagicMock, patch  # noqa: E402
+
+from mmbot_framework import ParsedMessage  # noqa: E402
+
+from bot import PostBot  # noqa: E402
+from config import PostBotConfig  # noqa: E402
+import task_runner  # noqa: E402
+
+
+def _make_config(**kwargs) -> PostBotConfig:
+    base = {
+        "url": "chat.example.com",
+        "token": "tok",
+        "team_name": "team",
+    }
+    base.update(kwargs)
+    return PostBotConfig(**base)
+
+
+def _make_msg(text: str, channel_id: str = "dm-ch") -> ParsedMessage:
+    raw = json.dumps({
+        "event": "posted",
+        "data": {
+            "channel_type": "D",
+            "post": json.dumps({
+                "user_id": "u1",
+                "channel_id": channel_id,
+                "message": text,
+                "file_ids": [],
+            }),
+            "sender_name": "@tester",
+        },
+    })
+    return ParsedMessage.from_raw(raw)
+
+
+def _bot_with_registry(tasks: dict, schedule: dict) -> PostBot:
+    """Return a PostBot with a mocked driver and a pre-loaded task registry."""
+    config = _make_config()
+    with patch("mmbot_framework.core.driver.DriverFactory.create", return_value=MagicMock()):
+        bot = PostBot(config)
+    bot._task_registry = task_runner.TaskRegistry(tasks, schedule)
+    return bot
+
+
+def test_handle_tasks_lists_all_tasks():
+    async def run(driver): pass
+    entry = TaskEntry(name="weekly", run=run, description="Weekly plan")
+    bot = _bot_with_registry({"weekly": entry}, {"weekly": "0 7 * * 1"})
+    msg = _make_msg("!tasks")
+    posted: list[str] = []
+    bot._post = lambda ch, text: posted.append(text)
+
+    asyncio.run(bot._handle_tasks(msg))
+
+    assert len(posted) == 1
+    assert "weekly" in posted[0]
+    assert "Weekly plan" in posted[0]
+    assert "0 7 * * 1" in posted[0]
+
+
+def test_handle_tasks_shows_manual_only_when_unscheduled():
+    async def run(driver): pass
+    entry = TaskEntry(name="manual", run=run)
+    bot = _bot_with_registry({"manual": entry}, {})
+    msg = _make_msg("!tasks")
+    posted: list[str] = []
+    bot._post = lambda ch, text: posted.append(text)
+
+    asyncio.run(bot._handle_tasks(msg))
+
+    assert "manual only" in posted[0]
+
+
+def test_handle_run_unknown_task():
+    bot = _bot_with_registry({}, {})
+    msg = _make_msg("!run nonexistent")
+    posted: list[str] = []
+    bot._post = lambda ch, text: posted.append(text)
+
+    asyncio.run(bot._handle_run(msg))
+
+    assert any("Unknown task" in p for p in posted)
+
+
+def test_handle_run_no_task_name():
+    bot = _bot_with_registry({}, {})
+    msg = _make_msg("!run ")
+    posted: list[str] = []
+    bot._post = lambda ch, text: posted.append(text)
+
+    asyncio.run(bot._handle_run(msg))
+
+    assert any("Usage" in p for p in posted)
+
+
+def test_handle_run_successful_task():
+    ran: list[str] = []
+    async def run(driver): ran.append("ran")
+    entry = TaskEntry(name="ok_task", run=run)
+    bot = _bot_with_registry({"ok_task": entry}, {})
+    msg = _make_msg("!run ok_task")
+    posted: list[str] = []
+    bot._post = lambda ch, text: posted.append(text)
+
+    async def _run():
+        await bot._handle_run(msg)
+        await asyncio.sleep(0)  # let the fire-and-forget task complete
+
+    asyncio.run(_run())
+
+    assert ran == ["ran"]
+    assert any("⏳" in p for p in posted)
+    assert any("✅" in p for p in posted)
+
+
+def test_handle_run_failing_task_reports_error():
+    async def run(driver): raise ValueError("exploded")
+    entry = TaskEntry(name="bad_task", run=run)
+    bot = _bot_with_registry({"bad_task": entry}, {})
+    msg = _make_msg("!run bad_task")
+    posted: list[str] = []
+    bot._post = lambda ch, text: posted.append(text)
+
+    async def _run():
+        await bot._handle_run(msg)
+        await asyncio.sleep(0)
+
+    asyncio.run(_run())
+
+    assert any("❌" in p for p in posted)
+    assert any("exploded" in p for p in posted)
