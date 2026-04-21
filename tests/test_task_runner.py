@@ -253,7 +253,7 @@ def test_scheduler_loop_skips_unscheduled_task():
         try:
             await loop_task
         except asyncio.CancelledError:
-            pass
+            pass  # expected cancellation
 
     asyncio.run(run())
     assert fired == []
