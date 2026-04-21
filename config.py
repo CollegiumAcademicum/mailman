@@ -33,6 +33,10 @@ class PostBotConfig(BotConfig):
             considered fresh before the background task refreshes it.
             Defaults to 3600 (one hour). Set via
             ``CHANNEL_CACHE_TTL_SECONDS`` in ``.env``.
+        tasks_dir: Directory containing task plugin files (.py). Each file
+            becomes a schedulable task. Defaults to ``Path("tasks")``.
+        scheduler_toml_path: Path to the TOML file mapping task names to cron
+            expressions. Defaults to ``Path("scheduler.toml")``.
     """
 
     bot_log_channel_id: str = ""
@@ -40,6 +44,8 @@ class PostBotConfig(BotConfig):
     db_path: Path = Path("broadcast_log.db")
     console_log_level: str = "WARNING"
     channel_cache_ttl_seconds: int = 3600
+    tasks_dir: Path = Path("tasks")
+    scheduler_toml_path: Path = Path("scheduler.toml")
 
     # To add a new field, add it here e.g.
     # new_field: str = "default_value"

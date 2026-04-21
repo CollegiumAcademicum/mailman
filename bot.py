@@ -30,6 +30,8 @@ from mmbot_framework import BaseBot, ParsedMessage, Session
 from config import PostBotConfig
 from database import close_db_connection, initialize_database, log_broadcast
 from patches import apply_ssl_patch
+import task_runner
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -160,6 +162,12 @@ class PostBot(BaseBot):
         self._dispatcher.register("!refresh_channels", self._handle_refresh_channels)
         self._dispatcher.register("!add_alias", self._handle_add_alias)
 
+        # Task scheduler registry (populated in on_start).
+        self._task_registry: task_runner.TaskRegistry | None = None
+
+        self._dispatcher.register("!tasks", self._handle_tasks)
+        self._dispatcher.register("!run", self._handle_run)
+
     # ── Lifecycle hooks ──────────────────────────────────────────────────────
 
     async def on_start(self) -> None:
@@ -199,6 +207,14 @@ class PostBot(BaseBot):
         )
         await self.cache.refresh("channels")
         logger.info("Channel cache pre-warmed.")
+
+        tasks = task_runner.load_tasks(self.config.tasks_dir)
+        schedule = task_runner.load_schedule(self.config.scheduler_toml_path)
+        self._task_registry = task_runner.TaskRegistry(tasks, schedule)
+        logger.info(
+            f"Task scheduler ready: {len(tasks)} task(s) loaded, "
+            f"{len(schedule)} scheduled."
+        )
 
     async def on_stop(self) -> None:
         """Close the SQLite connection on shutdown."""
@@ -1325,3 +1341,115 @@ class PostBot(BaseBot):
             msg.channel_id,
             f"✅ `{alias}` → `{resolved_target}` added.{note}",
         )
+
+    async def _handle_tasks(self, msg: ParsedMessage) -> None:
+        """List all discovered tasks with their schedule and last-run time.
+
+        Triggered by: ``!tasks``
+        """
+        if self._task_registry is None:
+            self._post(msg.channel_id, "⚠️ Task registry not yet loaded.")
+            return
+        lines = [
+            "| Task | Description | Schedule | Last run |",
+            "| :--- | :--- | :--- | :--- |",
+        ]
+        for entry in sorted(self._task_registry.all_tasks(), key=lambda e: e.name):
+            cron_expr = self._task_registry.schedule.get(entry.name, "")
+            schedule_str = cron_expr if cron_expr else "— (manual only)"
+            last_run_str = (
+                entry.last_run.strftime("%Y-%m-%d %H:%M UTC")
+                if entry.last_run
+                else "never"
+            )
+            lines.append(
+                f"| `{entry.name}` | {entry.description} "
+                f"| {schedule_str} | {last_run_str} |"
+            )
+        self._post(msg.channel_id, "\n".join(lines))
+
+    async def _handle_run(self, msg: ParsedMessage) -> None:
+        """Immediately run a named task in the background.
+
+        Triggered by: ``!run <task_name>``
+
+        Replies with ⏳ immediately, then ✅ or ❌ when the task finishes.
+        """
+        if self._task_registry is None:
+            self._post(msg.channel_id, "⚠️ Task registry not yet loaded.")
+            return
+        task_name = msg.text[len("!run"):].strip()
+        if not task_name:
+            self._post(
+                msg.channel_id,
+                "Usage: `!run <task_name>`. Use `!tasks` to see available tasks.",
+            )
+            return
+        entry = self._task_registry.get(task_name)
+        if entry is None:
+            self._post(
+                msg.channel_id,
+                f"❌ Unknown task: `{task_name}`. Use `!tasks` to see available tasks.",
+            )
+            return
+
+        self._post(msg.channel_id, f"⏳ Running `{task_name}`...")
+        channel_id = msg.channel_id
+        name = task_name
+
+        async def _run_and_report() -> None:
+            try:
+                await entry.run(self.driver)
+                entry.last_run = datetime.now(timezone.utc)
+                self._post(channel_id, f"✅ `{name}` completed.")
+            except Exception as exc:
+                logger.error(f"Task {name!r} failed during !run: {exc}")
+                self._post(channel_id, f"❌ `{name}` failed: {exc}")
+
+        asyncio.create_task(_run_and_report())
+
+    async def _async_main(self) -> None:
+        """Start background tasks (session cleanup, cache refresh, scheduler) and open WebSocket.
+
+        Overrides :meth:`~mmbot_framework.BaseBot._async_main` to add the task
+        scheduler as a third background task alongside the inherited cleanup and
+        cache-refresh loops.
+        """
+        await self.on_start()
+        cleanup_task = asyncio.create_task(self._session_cleanup_loop())
+        cache_task = asyncio.create_task(self._cache_refresh_loop())
+        scheduler_task = asyncio.create_task(
+            task_runner.scheduler_loop(
+                self._task_registry,
+                self.driver,
+                self._post,
+                self.config.bot_log_channel_id,
+            )
+        )
+
+        async def _raw_ws_handler(raw_msg: str | dict) -> None:
+            raw_str = raw_msg if isinstance(raw_msg, str) else json.dumps(raw_msg)
+            msg = ParsedMessage.from_raw(raw_str)
+            if msg is not None:
+                await self._pipeline.run(msg, self._dispatch)
+
+        from mattermostdriver.websocket import Websocket  # noqa: PLC0415
+
+        self.driver.websocket = Websocket(self.driver.options, self.driver.client.token)
+
+        try:
+            logger.info("Opening WebSocket. Press Ctrl+C to stop.")
+            await self.driver.websocket.connect(_raw_ws_handler)
+        except (KeyboardInterrupt, asyncio.CancelledError):
+            logger.info("Interrupted. Shutting down.")
+        finally:
+            logger.debug("Cancelling background tasks.")
+            cleanup_task.cancel()
+            cache_task.cancel()
+            scheduler_task.cancel()
+            for task in (cleanup_task, cache_task, scheduler_task):
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    # Expected during shutdown after task.cancel(); safe to ignore.
+                    pass

@@ -1,0 +1,12 @@
+# Task scheduler configuration.
+# Each entry maps a task name (filename without .py) to a cron expression.
+# Tasks not listed here can still be triggered manually via !run.
+#
+# Cron format: minute hour day-of-month month day-of-week
+# Examples:
+#   "0 7 * * 1"   — every Monday at 07:00
+#   "0 8 1 * *"   — 1st of every month at 08:00
+#   "0 6 5 8 *"   — 5th August at 06:00
+
+[tasks]
+# example_task = "0 9 * * 1"   # uncomment to schedule the example task
