@@ -120,7 +120,7 @@ async def _fire_task(
     entry: TaskEntry,
     driver,
     post_fn: Callable[[str, str], None],
-    log_channel_id: str,
+    log_channel_id: str | None,
 ) -> None:
     """Run *entry.run(driver)*, update *entry.last_run*, and report errors.
 

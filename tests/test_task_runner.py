@@ -291,6 +291,46 @@ def test_scheduler_loop_cancels_in_flight_tasks_on_shutdown():
     assert cancelled == [True]
 
 
+def test_scheduler_loop_fires_due_task():
+    """scheduler_loop dispatches a due task when the sleep interval elapses."""
+    from unittest.mock import patch
+
+    fired: list[bool] = []
+
+    async def fake_run(driver):
+        fired.append(True)
+
+    async def run():
+        entry = TaskEntry(name="t", run=fake_run, description="test")
+        # last_run=None + "* * * * *" → is_due() returns True on the first tick
+        registry = TaskRegistry(tasks={"t": entry}, schedule={"t": "* * * * *"})
+
+        # Capture the real sleep before patching so we can use it inside the fake.
+        real_sleep = asyncio.sleep
+        tick = 0
+
+        async def fake_sleep(_n):
+            nonlocal tick
+            tick += 1
+            if tick == 1:
+                return  # first tick: return immediately so the loop checks is_due
+            # second tick: yield so the created _fire_task completes (empties
+            # pending), then raise CancelledError to stop the loop cleanly.
+            await real_sleep(0)
+            raise asyncio.CancelledError
+
+        with patch("task_runner.asyncio.sleep", side_effect=fake_sleep):
+            try:
+                await scheduler_loop(
+                    registry, driver=None, post_fn=lambda c, m: None, log_channel_id=None
+                )
+            except asyncio.CancelledError:
+                pass
+
+    asyncio.run(run())
+    assert fired == [True]
+
+
 # ── PostBot integration ────────────────────────────────────────────────────────
 
 import json  # noqa: E402
