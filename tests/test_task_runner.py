@@ -35,8 +35,6 @@ def test_scheduler_toml_path_custom():
 import asyncio
 from datetime import datetime, timezone
 
-import pytest
-
 import task_runner
 from task_runner import TaskEntry, TaskRegistry, load_tasks, load_schedule
 
