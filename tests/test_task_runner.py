@@ -282,6 +282,8 @@ def test_scheduler_loop_cancels_in_flight_tasks_on_shutdown():
         try:
             await inner
         except (asyncio.CancelledError, Exception):
+            # Intentionally ignored: this test is validating cancellation side
+            # effects (the task records cancellation) rather than exception propagation.
             pass
 
     asyncio.run(run())
