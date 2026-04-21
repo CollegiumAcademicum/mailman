@@ -338,7 +338,6 @@ from mmbot_framework import ParsedMessage  # noqa: E402
 
 from bot import PostBot  # noqa: E402
 from config import PostBotConfig  # noqa: E402
-import task_runner  # noqa: E402
 
 
 def _make_config(**kwargs) -> PostBotConfig:
