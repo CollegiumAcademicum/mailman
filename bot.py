@@ -100,7 +100,9 @@ _HELP_MESSAGE = (
     '- `!add_group <toml>` — add public group(s): `"GroupName" = ["id1", "id2"]`\n'
     "- `!add_private_group <toml>` — add private group(s): same toml format\n"
     "- `!refresh_channels` — force-reload the channel list cache\n"
-    "- `!add_alias <alias> <target>` — add a short alias for a group or whitelisted channel"
+    "- `!add_alias <alias> <target>` — add a short alias for a group or whitelisted channel\n"
+    "- `!tasks` — list all scheduled tasks with their cron schedule and last run time\n"
+    "- `!run <task>` — run a task immediately"
 )
 
 

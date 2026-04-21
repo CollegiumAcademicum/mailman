@@ -14,12 +14,15 @@ The bot is built on [mmbot_framework](../mmbot_framework/), a shared library tha
 
 ```
 postbot/
-  main.py        # Entry point: load config, build bot, run
-  bot.py         # PostBot(BaseBot) — all command handlers and broadcast wizard
-  config.py      # PostBotConfig(BotConfig) — env var loading and validation
-  database.py    # SQLite broadcast log
-  patches.py     # SSL workaround
-  channels.toml  # Channel group definitions (visible groups, private groups, whitelist)
+  main.py           # Entry point: load config, build bot, run
+  bot.py            # PostBot(BaseBot) — all command handlers and broadcast wizard
+  config.py         # PostBotConfig(BotConfig) — env var loading and validation
+  database.py       # SQLite broadcast log
+  patches.py        # SSL workaround
+  task_runner.py    # Task plugin discovery, schedule loading, and scheduler loop
+  channels.toml     # Channel group definitions (visible groups, private groups, whitelist)
+  scheduler.toml    # Cron schedule for automated tasks
+  tasks/            # Task plugin directory — one .py file per task
 ```
 
 **Message flow:**
@@ -51,13 +54,17 @@ CHANNEL_CACHE_TTL_SECONDS=3600  # How long the channel cache stays fresh (second
 
 # Logging
 LOG_LEVEL=INFO                  # File log level
-CONSOLE_LOG_LEVEL=WARNING   # Console (stdout) log level — set to INFO to see startup messages
+CONSOLE_LOG_LEVEL=WARNING       # Console (stdout) log level — set to INFO to see startup messages
 LOG_FILE=logs/bot.log
 
 # Postbot-specific
-BOT_LOG_CHANNEL_ID=             # Channel ID for broadcast audit messages (empty = disabled)
+BOT_LOG_CHANNEL_ID=             # Channel ID for broadcast audit messages and task failure alerts (empty = disabled)
 CHANNELS_TOML_PATH=channels.toml
 DB_PATH=broadcast_log.db
+
+# Task scheduler
+TASKS_DIR=tasks                 # Directory containing task plugin .py files
+SCHEDULER_TOML_PATH=scheduler.toml  # Cron schedule config
 ```
 
 > **Tip:** Set `CONSOLE_LOGGING_LEVEL=INFO` to see WebSocket connection and startup messages in the terminal.
@@ -132,6 +139,8 @@ All interaction happens via **direct message** to the bot. Messages in channels 
 | `!add_private_group <TOML>`        | Add one or more private groups at runtime                   |
 | `!refresh_channels`                | Force-reload the channel cache immediately                  |
 | `!add_alias <alias> <target>`      | Add a short alias for a group or whitelisted channel        |
+| `!tasks`                           | List all task plugins with their schedule and last run time |
+| `!run <task>`                      | Run a scheduled task immediately                            |
 | *(any other message)*              | Start the broadcast wizard                                  |
 
 ### Broadcast Wizard
@@ -173,6 +182,50 @@ Changes are persisted to `channels.toml` immediately.
 ```
 
 Aliases are case-insensitive and stored lowercase. They work in the broadcast wizard as shorthand for group names or whitelisted channels.
+
+---
+
+## Task Scheduler
+
+The bot can run arbitrary Python tasks on a cron schedule or on demand via `!run`. This replaces the old standalone cron scripts.
+
+### Writing a task
+
+Create a `.py` file in the `tasks/` directory. The filename (without `.py`) becomes the task's name.
+
+```python
+# tasks/my_task.py
+
+DESCRIPTION = "Posts the weekly maintenance plan"  # shown in !tasks (optional)
+
+async def run(driver) -> None:
+    """driver is the already-authenticated mattermostdriver.Driver."""
+    driver.posts.create_post({
+        "channel_id": "your_channel_id",
+        "message": "Hello from the task scheduler!",
+    })
+```
+
+The task is immediately available via `!run my_task` after a bot restart (or if the bot is already running, next restart). No registration code needed.
+
+### Scheduling a task
+
+Add an entry to `scheduler.toml` using standard 5-field cron syntax:
+
+```toml
+[tasks]
+my_task = "0 7 * * 1"   # every Monday at 07:00
+```
+
+Tasks not listed in `scheduler.toml` can still be triggered manually via `!run`.
+
+Schedule changes take effect on the next bot restart. The file is git-tracked, providing a natural audit trail.
+
+### Error handling
+
+- A task that fails to import at startup is skipped with a warning — the bot still starts.
+- A task that raises an exception at runtime is logged and, if `BOT_LOG_CHANNEL_ID` is set, an alert is posted to that channel.
+- A failing task never crashes the bot or blocks the scheduler.
 
 ---
 
