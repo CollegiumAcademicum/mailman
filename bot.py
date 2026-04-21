@@ -1407,3 +1407,48 @@ class PostBot(BaseBot):
                 self._post(channel_id, f"❌ `{name}` failed: {exc}")
 
         asyncio.create_task(_run_and_report())
+
+    async def _async_main(self) -> None:
+        """Start background tasks (session cleanup, cache refresh, scheduler) and open WebSocket.
+
+        Overrides :meth:`~mmbot_framework.BaseBot._async_main` to add the task
+        scheduler as a third background task alongside the inherited cleanup and
+        cache-refresh loops.
+        """
+        await self.on_start()
+        cleanup_task = asyncio.create_task(self._session_cleanup_loop())
+        cache_task = asyncio.create_task(self._cache_refresh_loop())
+        scheduler_task = asyncio.create_task(
+            task_runner.scheduler_loop(
+                self._task_registry,
+                self.driver,
+                self._post,
+                self.config.bot_log_channel_id,
+            )
+        )
+
+        async def _raw_ws_handler(raw_msg: str | dict) -> None:
+            raw_str = raw_msg if isinstance(raw_msg, str) else json.dumps(raw_msg)
+            msg = ParsedMessage.from_raw(raw_str)
+            if msg is not None:
+                await self._pipeline.run(msg, self._dispatch)
+
+        from mattermostdriver.websocket import Websocket  # noqa: PLC0415
+
+        self.driver.websocket = Websocket(self.driver.options, self.driver.client.token)
+
+        try:
+            logger.info("Opening WebSocket. Press Ctrl+C to stop.")
+            await self.driver.websocket.connect(_raw_ws_handler)
+        except (KeyboardInterrupt, asyncio.CancelledError):
+            logger.info("Interrupted. Shutting down.")
+        finally:
+            logger.debug("Cancelling background tasks.")
+            cleanup_task.cancel()
+            cache_task.cancel()
+            scheduler_task.cancel()
+            for task in (cleanup_task, cache_task, scheduler_task):
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
