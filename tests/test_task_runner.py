@@ -325,7 +325,7 @@ def test_scheduler_loop_fires_due_task():
                     registry, driver=None, post_fn=lambda c, m: None, log_channel_id=None
                 )
             except asyncio.CancelledError:
-                pass
+                pass  # expected: fake_sleep raises cancellation to stop loop after one dispatch
 
     asyncio.run(run())
     assert fired == [True]
