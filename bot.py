@@ -1451,4 +1451,5 @@ class PostBot(BaseBot):
                 try:
                     await task
                 except asyncio.CancelledError:
+                    # Expected during shutdown after task.cancel(); safe to ignore.
                     pass
