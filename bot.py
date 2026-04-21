@@ -1380,11 +1380,13 @@ class PostBot(BaseBot):
         if self._task_registry is None:
             self._post(msg.channel_id, "⚠️ Task registry not yet loaded.")
             return
-        task_name = msg.text[len("!run"):].strip()
+        parts = msg.text[len("!run"):].strip().split(None, 1)
+        task_name = parts[0] if parts else ""
+        args = parts[1] if len(parts) > 1 else ""
         if not task_name:
             self._post(
                 msg.channel_id,
-                "Usage: `!run <task_name>`. Use `!tasks` to see available tasks.",
+                "Usage: `!run <task_name> [args]`. Use `!tasks` to see available tasks.",
             )
             return
         entry = self._task_registry.get(task_name)
@@ -1401,7 +1403,7 @@ class PostBot(BaseBot):
 
         async def _run_and_report() -> None:
             try:
-                await entry.run(self.driver)
+                await entry.run(self.driver, args)
                 entry.last_run = datetime.now(timezone.utc)
                 self._post(channel_id, f"✅ `{name}` completed.")
             except Exception as exc:

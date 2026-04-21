@@ -431,7 +431,7 @@ def test_handle_run_no_task_name():
 
 def test_handle_run_successful_task():
     ran: list[str] = []
-    async def run(driver): ran.append("ran")
+    async def run(driver, args=""): ran.append("ran")
     entry = TaskEntry(name="ok_task", run=run)
     bot = _bot_with_registry({"ok_task": entry}, {})
     msg = _make_msg("!run ok_task")
@@ -449,8 +449,25 @@ def test_handle_run_successful_task():
     assert any("✅" in p for p in posted)
 
 
+def test_handle_run_passes_args_to_task():
+    received: list[str] = []
+    async def run(driver, args=""): received.append(args)
+    entry = TaskEntry(name="arg_task", run=run)
+    bot = _bot_with_registry({"arg_task": entry}, {})
+    msg = _make_msg("!run arg_task hello world")
+    bot._post = lambda ch, text: None
+
+    async def _run():
+        await bot._handle_run(msg)
+        await asyncio.sleep(0)
+
+    asyncio.run(_run())
+
+    assert received == ["hello world"]
+
+
 def test_handle_run_failing_task_reports_error():
-    async def run(driver): raise ValueError("exploded")
+    async def run(driver, args=""): raise ValueError("exploded")
     entry = TaskEntry(name="bad_task", run=run)
     bot = _bot_with_registry({"bad_task": entry}, {})
     msg = _make_msg("!run bad_task")
